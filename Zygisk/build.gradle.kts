@@ -2,6 +2,14 @@ plugins {
     alias(libs.plugins.android.library)
 }
 
+val defaultCFlags = arrayOf(
+        "-Wall", "-Wextra",
+        "-fno-rtti", "-fno-exceptions",
+        "-fno-stack-protector", "-fomit-frame-pointer",
+        "-Wno-builtin-macro-redefined", "-D__FILE__=__FILE_NAME__"
+)
+
+
 android {
     namespace = "com.hepta.zygisk"
     compileSdk = 35
@@ -13,6 +21,8 @@ android {
         consumerProguardFiles("consumer-rules.pro")
         externalNativeBuild {
             cmake {
+                cFlags("-std=c18", *defaultCFlags)
+                cppFlags("-std=c++20", *defaultCFlags)
                 abiFilters.add("arm64-v8a")
             }
         }

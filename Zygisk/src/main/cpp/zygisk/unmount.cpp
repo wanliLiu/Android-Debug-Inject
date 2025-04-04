@@ -37,9 +37,9 @@ void revert_unmount_ksu() {
             continue;
         }
         // Unmount everything mounted to /data/adb
-        if (info.target.starts_with("/data/adb")) {
-            targets.emplace_back(info.target);
-        }
+//        if (info.target.starts_with("/data/adb")) {
+//            targets.emplace_back(info.target);
+//        }
         // Unmount ksu overlays
         if (info.type == "overlay"
             && info.source == KSU_OVERLAY_SOURCE
@@ -70,14 +70,14 @@ void revert_unmount_magisk() {
     // Unmount dummy skeletons and MAGISKTMP
     // since mirror nodes are always mounted under skeleton, we don't have to specifically unmount
     for (auto& info: parse_mount_info("self")) {
-        if (info.source == "magisk" || info.source == "worker" || // magisktmp tmpfs
-            info.root.starts_with("/adb/modules")) { // bind mount from data partition
-            targets.push_back(info.target);
-        }
-        // Unmount everything mounted to /data/adb
-        if (info.target.starts_with("/data/adb")) {
-            targets.emplace_back(info.target);
-        }
+//        if (info.source == "magisk" || info.source == "worker" || // magisktmp tmpfs
+//            info.root.starts_with("/adb/modules")) { // bind mount from data partition
+//            targets.push_back(info.target);
+//        }
+//        // Unmount everything mounted to /data/adb
+//        if (info.target.starts_with("/data/adb")) {
+//            targets.emplace_back(info.target);
+//        }
     }
 
     for (auto& s: reversed(targets)) {

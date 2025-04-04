@@ -8,7 +8,7 @@
 #include <array>
 
 #include <lsplt.hpp>
-#include <entry.h>
+//#include <entry.h>
 
 #include <fcntl.h>
 #include <sys/prctl.h>
@@ -428,12 +428,12 @@ bool ZygiskModule::valid() const {
 
 /* Zygisksu changed: Use own zygiskd */
 int ZygiskModule::connectCompanion() const {
-    return zygiskd::ConnectCompanion(id);
+    return zygiskComm::ConnectCompanion(id);
 }
 
 /* Zygisksu changed: Use own zygiskd */
 int ZygiskModule::getModuleDir() const {
-    return zygiskd::GetModuleDir(id);
+    return zygiskComm::GetModuleDir(id);
 }
 
 void ZygiskModule::setOption(zygisk::Option opt) {
@@ -549,7 +549,7 @@ void ZygiskContext::fork_post() {
 /* Zygisksu changed: Load module fds */
 void ZygiskContext::run_modules_pre() {
     LOGE("ZygiskContext::run_modules_pre");
-    auto ms = zygiskd::ReadModules();
+    auto ms = zygiskComm::ReadModules();
     auto size = ms.size();
     for (size_t i = 0; i < size; i++) {
         auto& m = ms[i];
@@ -601,7 +601,7 @@ void ZygiskContext::run_modules_post() {
 /* Zygisksu changed: Load module fds */
 void ZygiskContext::app_specialize_pre() {
     flags[APP_SPECIALIZE] = true;
-    info_flags = zygiskd::GetProcessFlags(g_ctx->args.app->uid);
+    info_flags = zygiskComm::GetProcessFlags(g_ctx->args.app->uid);
     if ((info_flags & (PROCESS_IS_MANAGER | PROCESS_ROOT_IS_MAGISK)) == (PROCESS_IS_MANAGER | PROCESS_ROOT_IS_MAGISK)) {
         LOGI("current uid %d is manager!", g_ctx->args.app->uid);
         setenv("ZYGISK_ENABLED", "1", 1);
@@ -654,7 +654,7 @@ void ZygiskContext::nativeForkSystemServer_pre() {
         return;
 
     run_modules_pre();
-    zygiskd::SystemServerStarted();
+        zygiskComm::SystemServerStarted();
 
     sanitize_fds();
 }

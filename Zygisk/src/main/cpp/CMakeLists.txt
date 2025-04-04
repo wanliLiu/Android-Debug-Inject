@@ -23,14 +23,17 @@ set (Tutorial_VERSION_MINOR 0)
 
 # add the executable
 
-set(CMAKE_CXX_STANDARD 17)
-
+include_directories(common)
 aux_source_directory(common COMMON_SRC_LIST)
 add_library(common STATIC ${COMMON_SRC_LIST})
 target_include_directories(common PRIVATE include)
 
 aux_source_directory(zygiskd ZYGISKD_SRC_LIST)
 add_executable(zygiskd ${ZYGISKD_SRC_LIST})
-target_include_directories(zygisk PRIVATE include)
 target_link_libraries(zygiskd log common)
+
+add_subdirectory(lsplt)
+aux_source_directory(zygisk ZYGISK_SRC_LIST)
+add_library(zygisk SHARED ${ZYGISK_SRC_LIST})
+target_link_libraries(zygisk  log common lsplt_static)
 

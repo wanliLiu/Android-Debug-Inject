@@ -2,7 +2,6 @@
 
 #include <dlfcn.h>
 #include "api.hpp"
-#include "entry.h"
 namespace {
 
     struct ZygiskContext;
