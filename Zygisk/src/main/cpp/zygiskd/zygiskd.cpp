@@ -54,11 +54,6 @@ void Zygiskd::collect_modules(){
     }
 }
 
-void Zygiskd::load_modules() {
-
-
-}
-
 void handle_daemon_action(int cmd,int fd) {
     LOGD("handle_daemon_action");
 
@@ -194,7 +189,7 @@ void zygiskd_main(const char* requestSocketPath){
 
 
 int main(int argc, char *argv[]) {
-
-    zygiskd_main("");
+    LOGD("zygiskd start run , arg1:%s",argv[1]);
+    zygiskd_main(argv[1]);
     return 0;
 }

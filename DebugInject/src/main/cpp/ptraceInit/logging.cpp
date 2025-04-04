@@ -1,8 +1,7 @@
 #include <android/log.h>
 #include <unistd.h>
-
+#include <stdio.h>
 #include "logging.h"
-#include "socket_utils.h"
 
 namespace logging {
     static int logfd = -1;
@@ -23,14 +22,12 @@ namespace logging {
             __android_log_vprint(prio, tag, fmt, ap);
             va_end(ap);
         } else {
-            char buf[BUFSIZ];
+            char buf[4096];
             va_list ap;
             va_start(ap, fmt);
             vsnprintf(buf, sizeof(buf), fmt, ap);
             va_end(ap);
-            socket_utils::write_u8(logfd, prio);
-            socket_utils::write_string(logfd, tag);
-            socket_utils::write_string(logfd, buf);
+
         }
     }
 }

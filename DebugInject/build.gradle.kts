@@ -20,7 +20,7 @@ val releaseFlags = arrayOf(
 
 android {
     namespace = "com.singularity.ptraceinject"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         minSdk = 27

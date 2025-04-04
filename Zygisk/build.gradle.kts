@@ -12,7 +12,7 @@ val defaultCFlags = arrayOf(
 
 android {
     namespace = "com.hepta.zygisk"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         minSdk = 27

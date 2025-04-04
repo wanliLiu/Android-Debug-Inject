@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 #include <sys/vfs.h>
 #include <sys/system_properties.h>
-#include "common/logging.h"
+#include "logging.h"
 //// 系统lib路径
 //struct process_libs{
 //    const char *libc_path;

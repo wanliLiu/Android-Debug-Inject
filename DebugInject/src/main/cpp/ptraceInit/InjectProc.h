@@ -15,16 +15,12 @@ void func_test();
 class ContorlProcess {
 public:
 
-
     std::string exec;
     std::string waitSoPath;
     std::string waitFunSym;
     std::string InjectSO;
     std::string InjectFunSym;
     std::string InjectFunArg;
-    pid_t pid;
-
-
 
 };
 

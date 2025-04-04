@@ -21,13 +21,13 @@
 #include <vector>
 #include <array>
 #include "link.h"
-#include "common/logging.h"
+#include "logging.h"
 #include "PtraceUtils.h"
 #include <link.h>
 #include "elf_symbol_resolver.h"
 using namespace std;
 
-bool wait_nativePreFork(pid_t pid, uintptr_t remote_nativePreFork_addr){
+bool wait_nativePreFork(pid_t pid, uintptr_t remote_monitor_sym_addr){
 
     int status;
     struct pt_regs CurrentRegs;
@@ -38,10 +38,10 @@ bool wait_nativePreFork(pid_t pid, uintptr_t remote_nativePreFork_addr){
 
     uint32_t orig_instr;
 
-    read_proc(pid, remote_nativePreFork_addr, (uintptr_t)&orig_instr, sizeof(orig_instr));
+    read_proc(pid, remote_monitor_sym_addr, (uintptr_t)&orig_instr, sizeof(orig_instr));
     uint32_t break_addr_instr =  BREAKPOINT_INSTR;
     uint32_t source_addr_instr;
-    ptrace_writedata(pid, (uint8_t*) remote_nativePreFork_addr, (uint8_t*)&break_addr_instr, sizeof(break_addr_instr));
+    ptrace_writedata(pid, (uint8_t*) remote_monitor_sym_addr, (uint8_t*)&break_addr_instr, sizeof(break_addr_instr));
     ptrace(PTRACE_CONT, pid, 0, 0);
     int sginal ;
     do{
@@ -54,14 +54,14 @@ bool wait_nativePreFork(pid_t pid, uintptr_t remote_nativePreFork_addr){
                     return false;
                 }
                 LOGD("[+][function:%s] cmp pc ",__func__);
-                if (static_cast<uintptr_t>(CurrentRegs.pc & ~1) != (remote_nativePreFork_addr & ~1)) {
+                if (static_cast<uintptr_t>(CurrentRegs.pc & ~1) != (remote_monitor_sym_addr & ~1)) {
                     LOGE("stopped at unknown addr %llx", CurrentRegs.pc);
                     ptrace(PTRACE_CONT, pid, NULL, WSTOPSIG(status));
                     continue;
                 }
                 LOGD("[+][function:%s] reset instr ",__func__);
-                ptrace_writedata(pid, (uint8_t*) remote_nativePreFork_addr, (uint8_t*)&orig_instr, sizeof(orig_instr));
-                read_proc(pid, remote_nativePreFork_addr, (uintptr_t)&source_addr_instr, sizeof(source_addr_instr));
+                ptrace_writedata(pid, (uint8_t*) remote_monitor_sym_addr, (uint8_t*)&orig_instr, sizeof(orig_instr));
+                read_proc(pid, remote_monitor_sym_addr, (uintptr_t)&source_addr_instr, sizeof(source_addr_instr));
                 if(source_addr_instr != orig_instr){
                     LOGE("bkr reset failed");
                 }
@@ -81,32 +81,27 @@ bool wait_nativePreFork(pid_t pid, uintptr_t remote_nativePreFork_addr){
 }
 
 
-uintptr_t wait_lib_load_get_base(pid_t pid, const char *LibPath,std::vector<MapInfo> local_map){
+uintptr_t wait_lib_load_get_base(pid_t pid, const char *LibPath, vector<MapInfo>& local_maps) {
 
-    bool stop = stop_int_app_process_entry(pid);
-    if(!stop){
-        LOGE("stop_int_app_process_entry failed \n");
-        return false;
-    }
 
     uintptr_t ret_libart_load_bias = -1;
 
     auto remote_map = MapScan(std::to_string(pid));
-//    auto local_map = MapScan(std::to_string(getpid()));
     auto remote_linker_handle = find_module_return_addr(remote_map, "/apex/com.android.runtime/bin/linker64");
 
     if(remote_linker_handle == nullptr){
-        LOGD("remote_linker_handle is not found \n");
+        LOGE("remote_linker_handle is not found \n");
         return false;
     }
     struct pt_regs CurrentRegs;
-    // linker nof load self it,so
+    // linker nof load self it ,linker 使用符号解析的时候一定要注意,我发现通过hash表和动态段的快速解析方式不好是,只能使用原始读取文件遍历函数的方法算偏移
+    auto dl_notify_gdb_of_load_off = reinterpret_cast<uintptr_t>(get_libFile_Symbol_off("/apex/com.android.runtime/bin/linker64", "__dl_notify_gdb_of_load"));
+    auto linker64_base_addr =  find_module_base(remote_map,"/apex/com.android.runtime/bin/linker64");
+    auto remote_dl_notify_gdb_of_load_addr = dl_notify_gdb_of_load_off + (uintptr_t )linker64_base_addr;
+    LOGD("local_dl_notify_gdb_of_load %lx", remote_dl_notify_gdb_of_load_addr);
 
-    auto local_dl_notify_gdb_of_load = reinterpret_cast<uintptr_t>(get_self_load_Sym_Addr(
-            "/apex/com.android.runtime/bin/linker64", "__dl_notify_gdb_of_load"));
-    auto remote_dl_notify_gdb_of_load_addr = reinterpret_cast<uintptr_t>(get_remote_func_addr(pid, "/apex/com.android.runtime/bin/linker64", (void *) local_dl_notify_gdb_of_load));
     uint32_t orig_instr;
-    read_proc(pid, remote_dl_notify_gdb_of_load_addr, (uintptr_t)&orig_instr, sizeof(orig_instr));
+    read_proc(pid, remote_dl_notify_gdb_of_load_addr, (uintptr_t)&orig_instr, sizeof(uint32_t));
     link_map linkMap{};
     char libname[100];
     uint32_t break_addr_instr =  BREAKPOINT_INSTR;
@@ -115,9 +110,11 @@ uintptr_t wait_lib_load_get_base(pid_t pid, const char *LibPath,std::vector<MapI
 
     int status;
     do{
+        LOGD("Write break");
         ptrace_writedata(pid, (uint8_t*) remote_dl_notify_gdb_of_load_addr, (uint8_t*)&break_addr_instr, sizeof(break_addr_instr));
         ptrace(PTRACE_CONT, pid, 0, 0);
         wait_for_trace(pid, &status, __WALL);
+        LOGD("wait_for_trace");
         //出发断点
         if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP) {
             if (ptrace_getregs(pid, &CurrentRegs) != 0) {
@@ -132,6 +129,7 @@ uintptr_t wait_lib_load_get_base(pid_t pid, const char *LibPath,std::vector<MapI
                 ptrace(PTRACE_CONT, pid, NULL, WSTOPSIG(status));
                 continue;
             }
+            LOGD("reset break");
             //恢复断点位置的指令
             ptrace_writedata(pid, (uint8_t*) remote_dl_notify_gdb_of_load_addr, (uint8_t*)&orig_instr, sizeof(orig_instr));
             //读取恢复的断点位置的指令
@@ -149,9 +147,11 @@ uintptr_t wait_lib_load_get_base(pid_t pid, const char *LibPath,std::vector<MapI
                 ret_libart_load_bias = linkMap.l_addr;
                 break;
             }
-
             ptrace(PTRACE_SINGLESTEP, pid, NULL, NULL);
+            LOGD("ptrace singlestep");
             wait_for_trace(pid, &status, __WALL);
+            LOGD("wait_for_trace coutine");
+
 
         }
     } while (true);
@@ -161,6 +161,7 @@ uintptr_t wait_lib_load_get_base(pid_t pid, const char *LibPath,std::vector<MapI
 bool InjectProc::filter_proce_exec_file(pid_t pid, ContorlProcess &cp)
 {
     auto program = get_program(pid);
+    LOGD("filter_proce_exec_file: %s ,pid:%d ", program.c_str(),pid);
     for (auto &map: cps) {
         if(program == map.exec){
             cp = map;
@@ -341,13 +342,30 @@ bool inject_process(pid_t pid,const char *LibPath,const char *FunctionName,const
 void InjectProc::monitor_process(pid_t pid){
     ContorlProcess cp;
     if(filter_proce_exec_file(pid,cp)){
-        auto local_map = MapScan(std::to_string(getpid()));
-        uintptr_t  remote_waitSoPath_addr = wait_lib_load_get_base(pid, cp.waitSoPath.c_str(),local_map);
-        auto remote_waitFunSym_addr = get_remote_load_Sym_Addr((void*)remote_waitSoPath_addr, pid, cp.waitFunSym.c_str());
-        LOGE("remote_waitSoPath_addr:%lx", remote_waitFunSym_addr);
-        wait_nativePreFork(pid,(uintptr_t)remote_waitFunSym_addr);
-        LOGD("start in nativePreFork");
-        inject_process(pid,cp.InjectSO.c_str(), cp.InjectFunSym.c_str(),cp.InjectFunArg.c_str());
+        bool stop = stop_int_app_process_entry(pid);
+        if(stop){
+            auto local_map = MapScan(std::to_string(getpid()));
+            uintptr_t  remote_waitSoPath_addr = wait_lib_load_get_base(pid, cp.waitSoPath.c_str(),local_map);
+            if(remote_waitSoPath_addr != -1){
+                if(!cp.waitFunSym.empty()){
+
+                    uintptr_t remote_waitFunSym_addr = get_libFile_Symbol_off((char*)cp.waitSoPath.c_str(),(char*)cp.waitFunSym.c_str())+remote_waitSoPath_addr;
+                    LOGD("waitFunSym is not nul, wait Fun exec,waitFunSymAddr : %lx",remote_waitFunSym_addr);
+                    wait_nativePreFork(pid,(uintptr_t)remote_waitFunSym_addr);
+                }
+                LOGD("start, inject so to process");
+                inject_process(pid,cp.InjectSO.c_str(), cp.InjectFunSym.c_str(),cp.InjectFunArg.c_str());
+                LOGD("end,   inject so to process");
+
+            } else{
+                LOGE("wait_lib_load_get_base:%s failed",cp.waitSoPath.c_str());
+
+            }
+        } else{
+            LOGE("stop_int_app_process_entry failed");
+
+        }
+
         ptrace(PTRACE_CONT, pid, 0, 0);
 
     }

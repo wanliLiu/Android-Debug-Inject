@@ -537,7 +537,7 @@ bool stop_int_app_process_entry(pid_t pid){
         // reset pc to entry
         CurrentRegs.pc = (long) entry_addr;
 
-        LOGD("invoke entry");
+        LOGD("restore registers invoke entry");
         // restore registers
         ptrace_setregs(pid, &CurrentRegs);
 

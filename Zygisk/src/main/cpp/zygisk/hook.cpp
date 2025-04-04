@@ -548,7 +548,7 @@ void ZygiskContext::fork_post() {
 
 /* Zygisksu changed: Load module fds */
 void ZygiskContext::run_modules_pre() {
-    LOGE("ZygiskContext::run_modules_pre");
+    LOGD("ZygiskContext::run_modules_pre");
     auto ms = zygiskComm::ReadModules();
     auto size = ms.size();
     for (size_t i = 0; i < size; i++) {
@@ -767,8 +767,7 @@ void hook_functions() {
 
     PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, fork);
     PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, unshare);
-//    PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, strdup);
-//    PLT_HOOK_REGISTER_SYM(android_runtime_dev, android_runtime_inode, "__android_log_close", android_log_close);
+
     hook_commit();
 //
 //    // Remove unhooked methods

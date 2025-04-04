@@ -25,10 +25,10 @@
 #include <android/log.h>
 
 
-#define LOGN_TAG "remote_findSym"
+#define LOGN_TAG "zygisk_remote_findSym"
 #define LOGDN(...) __android_log_print(ANDROID_LOG_DEBUG,LOGN_TAG,__VA_ARGS__)
 
-#define LOG_TAG "old_findSym"
+#define LOG_TAG "zygisk_self_findSym"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG,__VA_ARGS__)
 
 
@@ -500,7 +500,6 @@ uintptr_t get_libFile_Symbol_off(char *lib_path,char *fun_name){
 //        printf("mmap %s failed\n", lib_path);
         return NULL;
     }
-
 
     linkerElfCtxInit(&ctx, mmap_buffer);
     result = reinterpret_cast<uintptr_t>(linkerElfCtxIterateSymbolTable(&ctx, fun_name));

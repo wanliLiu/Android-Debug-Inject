@@ -3,7 +3,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <iostream>
-#include <event2/event.h>
 #include <csignal>
 #include <sys/user.h>
 #include <cstring>
@@ -16,8 +15,7 @@
 #include <thread>
 #include "json.hpp"
 #include "InjectProc.h"
-#include "common/logging.h"
-#include "zygiskd.h"
+#include "logging.h"
 
 using namespace std;
 using json = nlohmann::json;
@@ -133,9 +131,7 @@ void clean_trace(int arg) {
     ptrace(PTRACE_DETACH, injectProc.getTracePid(), nullptr, nullptr);
     exit(0);
 }
-void ZygiskTask() {
-    zygiskd_main(InjectProc::getInstance().getRequestoSocket().c_str());
-}
+
 
 
 int main(int argc, char *argv[]) {
@@ -149,26 +145,31 @@ int main(int argc, char *argv[]) {
     json jsonData = nlohmann::json::parse(f);
     InjectProc & injectProc = InjectProc::getInstance();
     json array = jsonData["childProcess"];
-    pid_t traced_pid = jsonData["traced_pid"];
-    injectProc.setRequestoSocket(jsonData["requestSocketPath"]);
-
+    pid_t traced_pid = jsonData.value("traced_pid",-1);
+    if(traced_pid <0){
+        LOGD("traced_pid is error");
+        return 0;
+    }
     if(!array.is_array()){
-        std::cout<< "childProcess is not array"<<std::endl;
+        LOGD("config File is error");
+        LOGD("childProcess is not array");
+        return 0;
     }
     for(const auto& e : array){
-        auto cp = ContorlProcess {e["exec"], e["waitSoPath"], e["waitFunSym"], e["InjectSO"], e["InjectFunSym"]};
+        std::string exec = e.value("exec", "");
+        std::string waitSoPath = e.value("waitSoPath", "");
+        std::string waitFunSym = e.value("waitFunSym", "");
+        std::string InjectSO = e.value("InjectSO", "");
+        std::string InjectFunSym = e.value("InjectFunSym", "");
+        std::string InjectFunArg = e.value("InjectFunArg", "");
+        auto cp = ContorlProcess {exec, waitSoPath, waitFunSym, InjectSO, InjectFunSym,InjectFunArg};
         injectProc.add_childProces(cp);
     }
-
-//    injectProc.set_zygote32_Inject_So(jsonData["zygote32_Inject_So"]);
-//    injectProc.set_zygote64_Inject_So(jsonData["zygote64_Inject_So"]);
 
     LOGD("buile time: %s",__TIMESTAMP__);
     injectProc.setTracePid(traced_pid);
     std::thread ptraceThread(PtraceTask);
-    std::thread ZygiskThread(ZygiskTask);
     ptraceThread.join();
-    ZygiskThread.join();
 //    func_test();
     return 0;
 }
