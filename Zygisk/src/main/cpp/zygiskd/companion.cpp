@@ -111,7 +111,9 @@ void companion_entry(int socket) {
   // recv module lib fd
     int lib_fd = socket_utils::recv_fd(socket);
     // recv module module client fd
+    LOGW("lib_fd client");
     int client = socket_utils::recv_fd(socket);
+    LOGW("recv client");
 
     android_dlextinfo info {
             .flags = ANDROID_DLEXT_USE_LIBRARY_FD,
@@ -122,5 +124,6 @@ void companion_entry(int socket) {
     } else {
         LOGW("Failed to dlopen zygisk module: %s\n", dlerror());
     }
+    LOGW("android_dlopen_ext lib_fd");
 
 }

@@ -140,6 +140,7 @@ namespace zygiskComm {
         socket_utils::write_usize(fd, 0);
 #endif
         socket_utils::write_u32(fd, index);
+        return fd;
         // magisk zygis 这里是没有等待的,所以这里也不等待
 //        if (socket_utils::read_u8(fd) == 1) {
 //            return fd;
