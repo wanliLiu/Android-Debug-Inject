@@ -13,8 +13,6 @@ if (LSPLT_STANDALONE)
     link_libraries(cxx::cxx)
 endif()
 
-add_definitions(-std=c++20)
-
 set(SOURCES lsplt.cc elf_util.cc)
 
 option(LSPLT_BUILD_SHARED "If ON, lsplt will also build shared library" ON)

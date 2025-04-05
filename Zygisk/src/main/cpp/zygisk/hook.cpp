@@ -188,7 +188,7 @@ ret new_##func(__VA_ARGS__)
                 // Because both `pthread_attr_destroy` and `dlclose` have the same function signature,
                 // we can use `musttail` to let the compiler reuse our stack frame and thus
                 // `dlclose` will directly return to the caller of `pthread_attr_destroy`.
-                [[clang::musttail]] return dlclose(self_handle);
+//                [[clang::musttail]] return dlclose(self_handle);
             }
         }
 

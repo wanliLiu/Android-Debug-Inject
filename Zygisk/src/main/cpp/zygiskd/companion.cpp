@@ -20,6 +20,7 @@
 #include "logging.h"
 #include "socket_utils.h"
 #include <poll.h>
+#include <android/dlext.h>
 #include "dl.h"
 #include "vector"
 # define LOG_TAG "zygisk-commpanion"
@@ -105,16 +106,21 @@ bool check_unix_socket(int fd, bool block) {
 void companion_entry(int socket) {
     if (getuid() != 0 || fcntl(socket, F_GETFD) < 0)
         exit(-1);
-   //   给 zygisd ack
+   //   send ask to zygiskd
     socket_utils::write_u32(socket, 0);
-
+  // recv module lib fd
+    int lib_fd = socket_utils::recv_fd(socket);
+    // recv module module client fd
     int client = socket_utils::recv_fd(socket);
 
-
-
-
-
-
-
+    android_dlextinfo info {
+            .flags = ANDROID_DLEXT_USE_LIBRARY_FD,
+            .library_fd = lib_fd,
+    };
+    if (void *h = android_dlopen_ext("/jit-cache", RTLD_LAZY, &info)) {
+        void * entry = dlsym(h, "zygisk_companion_entry");
+    } else {
+        LOGW("Failed to dlopen zygisk module: %s\n", dlerror());
+    }
 
 }

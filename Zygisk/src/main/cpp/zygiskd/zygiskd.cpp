@@ -120,20 +120,20 @@ static void connect_companion(int client, bool is_64_bit) {
             exit(-1);
         }
 
-
         close(fds[1]);
-#if defined(__LP64__)
-        socket_utils::send_fd(zygiskd_socket,module.z64);
 
-#else
-        socket_utils::send_fd(zygiskd_socket,module.z32);
-#endif
-
-        // Wait for ack
+        // Wait for ack commpanion process
         if (socket_utils::read_u32(zygiskd_socket) != 0) {
             LOGE("zygiskd startup error\n");
             return;
         }
+
+#if defined(__LP64__)
+        socket_utils::send_fd(zygiskd_socket,module.z64);
+#else
+        socket_utils::send_fd(zygiskd_socket,module.z32);
+#endif
+
     }
     socket_utils::send_fd(zygiskd_socket, client);
 }
