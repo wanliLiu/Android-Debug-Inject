@@ -1,3 +1,5 @@
+#include <sys/wait.h>
+#include <unistd.h>
 #include "misc.hpp"
 
 int new_daemon_thread(thread_entry entry, void *arg) {
@@ -46,4 +48,31 @@ std::string join_str(const std::list<std::string>& list, std::string_view delimi
         ret += s;
     }
     return ret;
+}
+
+
+int fork_dont_care() {
+    if (int pid = fork()) {
+        waitpid(pid, nullptr, 0);
+        return pid;
+    } else if (fork()) {
+        exit(0);
+    }
+    return 0;
+}
+
+int vssprintf(char *dest, size_t size, const char *fmt, va_list ap) {
+    if (size > 0) {
+        *dest = 0;
+        return std::min(vsnprintf(dest, size, fmt, ap), (int) size - 1);
+    }
+    return -1;
+}
+
+int ssprintf(char *dest, size_t size, const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    int r = vssprintf(dest, size, fmt, va);
+    va_end(va);
+    return r;
 }

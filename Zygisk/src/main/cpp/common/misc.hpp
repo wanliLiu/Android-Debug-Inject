@@ -91,6 +91,8 @@ std::list<std::string> split_str(std::string_view s, std::string_view delimiter)
 
 std::string join_str(const std::list<std::string>& list, std::string_view delimiter);
 
+int ssprintf(char *dest, size_t size, const char *fmt, ...) ;
+int fork_dont_care() ;
 template <typename T>
 static inline T align_to(T v, int a) {
     static_assert(std::is_integral<T>::value);

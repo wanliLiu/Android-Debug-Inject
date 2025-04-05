@@ -24,6 +24,8 @@ android {
                 cFlags("-std=c18", *defaultCFlags)
                 cppFlags("-std=c++20", *defaultCFlags)
                 abiFilters.add("arm64-v8a")
+                abiFilters.add("armeabi-v7a")
+
             }
         }
     }

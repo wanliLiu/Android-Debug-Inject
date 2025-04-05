@@ -19,7 +19,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Linux-Debug-Inject"
+rootProject.name = "ALinux-Debug-Inject"
 include(":DebugInject")
 include(":module")
 include(":Zygisk")

@@ -31,4 +31,5 @@ namespace socket_utils {
 
     int send_fd(int sockfd, int fd);
 
+    int send_fds(int sockfd, const int *fds, int cnt) ;
 }

@@ -38,3 +38,4 @@ aux_source_directory(zygisk ZYGISK_SRC_LIST)
 add_library(zygisk SHARED ${ZYGISK_SRC_LIST})
 target_link_libraries(zygisk  log common lsplt_static)
 
+

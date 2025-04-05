@@ -1,7 +1,7 @@
 #include <cstddef>
 #include <sys/socket.h>
 #include <unistd.h>
-
+#include "vector"
 #include "socket_utils.h"
 
 namespace socket_utils {
@@ -141,7 +141,7 @@ namespace socket_utils {
 
 
 
-     int send_fds(int sockfd, void *cmsgbuf, size_t bufsz, const int *fds, int cnt) {
+    static int send_fds(int sockfd, void *cmsgbuf, size_t bufsz, const int *fds, int cnt) {
         iovec iov = {
                 .iov_base = &cnt,
                 .iov_len  = sizeof(cnt),
@@ -165,6 +165,7 @@ namespace socket_utils {
         return xsendmsg(sockfd, &msg, 0);
     }
 
+
     int send_fd(int sockfd, int fd) {
         if (fd < 0) {
             return send_fds(sockfd, nullptr, 0, nullptr, 0);
@@ -173,6 +174,14 @@ namespace socket_utils {
         return send_fds(sockfd, cmsgbuf, sizeof(cmsgbuf), &fd, 1);
     }
 
+    int send_fds(int sockfd, const int *fds, int cnt) {
+        if (cnt == 0) {
+            return send_fds(sockfd, nullptr, 0, nullptr, 0);
+        }
+        std::vector<char> cmsgbuf;
+        cmsgbuf.resize(CMSG_SPACE(sizeof(int) * cnt));
+        return send_fds(sockfd, cmsgbuf.data(), cmsgbuf.size(), fds, cnt);
+    }
 
 
 }
