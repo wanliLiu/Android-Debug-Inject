@@ -23,3 +23,4 @@ rootProject.name = "ALinux-Debug-Inject"
 include(":DebugInject")
 include(":module")
 include(":Zygisk")
+include(":ADILib")

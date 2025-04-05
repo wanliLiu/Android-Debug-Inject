@@ -5,10 +5,5 @@ import java.io.ByteArrayOutputStream
 plugins {
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.android.application) apply false
+
 }
-
-
-//val gitCommitCount = "git rev-list HEAD --count".execute().toInt()
-val moduleId by extra("syzuel")
-val moduleName by extra("Zygisk syzuel")
-val verName by extra("v4-0.9.1.1")
