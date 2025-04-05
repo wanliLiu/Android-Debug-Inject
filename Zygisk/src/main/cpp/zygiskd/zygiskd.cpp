@@ -86,10 +86,6 @@ static int zygiskd_sockets[] = { -1, -1 };
 static void connect_companion(int client, bool is_64_bit) {
     mutex_guard g(zygiskd_lock);
 
-    int index = socket_utils::read_u32(client);
-    Module module = Zygiskd::getInstance().getModule_list()[index];
-
-
     if (zygiskd_socket >= 0) {
         // Make sure the socket is still valid
         pollfd pfd = { zygiskd_socket, 0, 0 };
@@ -105,38 +101,31 @@ static void connect_companion(int client, bool is_64_bit) {
         socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, fds);
         zygiskd_socket = fds[0];
         if (fork_dont_care() == 0) {
-
-            // This fd has to survive exec
-            fcntl(fds[1], F_SETFD, 0);
-            char buf[16];
-            ssprintf(buf, sizeof(buf), "%d", fds[1]);
-
 #if defined(__LP64__)
             std::string exe = Zygiskd::getInstance().get_exec_path();
 #else
             std::string exe = Zygiskd::getInstance().get_exec_path()+"32";
 #endif
+            // This fd has to survive exec
+            fcntl(fds[1], F_SETFD, 0);
+            char buf[16];
+            ssprintf(buf, sizeof(buf), "%d", fds[1]);
             execl(exe.c_str(), "","companion", buf, (char *) nullptr);
             exit(-1);
         }
-
         close(fds[1]);
-
-        // Wait for ack commpanion process
+        std::vector<int> module_fds = get_module_fds(is_64_bit);
+        socket_utils::send_fds(zygiskd_socket, module_fds.data(), module_fds.size());
+        // Wait for ack
         if (socket_utils::read_u32(zygiskd_socket) != 0) {
             LOGE("zygiskd startup error\n");
             return;
         }
-
-#if defined(__LP64__)
-        socket_utils::send_fd(zygiskd_socket,module.z64);
-#else
-        socket_utils::send_fd(zygiskd_socket,module.z32);
-#endif
-
     }
     socket_utils::send_fd(zygiskd_socket, client);
 }
+
+
 
 void handle_daemon_action(int cmd,int fd) {
     LOGD("handle_daemon_action");

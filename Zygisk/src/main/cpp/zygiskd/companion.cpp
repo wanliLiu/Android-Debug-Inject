@@ -12,19 +12,20 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
-
 #include <unistd.h>
 #include <linux/limits.h>
-#include <pthread.h>
 #include <asm-generic/poll.h>
 #include "logging.h"
 #include "socket_utils.h"
 #include <poll.h>
 #include <android/dlext.h>
 #include "dl.h"
-#include "vector"
+#include <vector>
+#include <thread>
+
 # define LOG_TAG "zygisk-commpanion"
 
+using comp_entry = void(*)(int);
 
 typedef void (*zygisk_companion_entry)(int);
 
@@ -53,77 +54,78 @@ zygisk_companion_entry load_module(int fd) {
     return (zygisk_companion_entry)entry;
 }
 
-/* WARNING: Dynamic memory based */
-void *entry_thread(void *arg) {
-    struct companion_module_thread_args *args = (struct companion_module_thread_args *)arg;
 
-    int fd = args->fd;
-    zygisk_companion_entry module_entry = args->entry;
 
-    struct stat st0 = { 0 };
-    if (fstat(fd, &st0) == -1) {
-        LOGE(" - Failed to get initial client fd stats: %s\n", strerror(errno));
-
-        free(args);
-
-        return NULL;
+void entry_thread(int client,comp_entry entry){
+    struct stat s1;
+    fstat(client, &s1);
+    entry(client);
+    // Only close client if it is the same file so we don't
+    // accidentally close a re-used file descriptor.
+    // This check is required because the module companion
+    // handler could've closed the file descriptor already.
+    if (struct stat s2; fstat(client, &s2) == 0) {
+        if (s1.st_dev == s2.st_dev && s1.st_ino == s2.st_ino) {
+            close(client);
+        }
     }
-
-    module_entry(fd);
-
-    /* INFO: Only attempt to close the client fd if it appears to be the same file
-               and if we can successfully stat it again. This prevents double closes
-               if the module companion already closed the fd.
-    */
-    struct stat st1;
-    if (fstat(fd, &st1) != -1 || st0.st_ino == st1.st_ino) {
-        LOGI(" - Client fd changed after module entry\n");
-
-        close(fd);
-    }
-
-    free(args);
-
-    return NULL;
 }
-
-bool check_unix_socket(int fd, bool block) {
-    struct pollfd pfd = {
-            .fd = fd,
-            .events = POLLIN,
-            .revents = 0
-    };
-
-    int timeout = block ? -1 : 0;
-    poll(&pfd, 1, timeout);
-
-    return pfd.revents & ~POLLIN ? false : true;
-}
-
 
 
 /* WARNING: Dynamic memory based */
 void companion_entry(int socket) {
     if (getuid() != 0 || fcntl(socket, F_GETFD) < 0)
         exit(-1);
-   //   send ask to zygiskd
-    socket_utils::write_u32(socket, 0);
-  // recv module lib fd
-    int lib_fd = socket_utils::recv_fd(socket);
-    // recv module module client fd
-    LOGW("lib_fd client");
-    int client = socket_utils::recv_fd(socket);
-    LOGW("recv client");
 
-    android_dlextinfo info {
-            .flags = ANDROID_DLEXT_USE_LIBRARY_FD,
-            .library_fd = lib_fd,
-    };
-    if (void *h = android_dlopen_ext("/jit-cache", RTLD_LAZY, &info)) {
-        void * entry = dlsym(h, "zygisk_companion_entry");
-    } else {
-        LOGW("Failed to dlopen zygisk module: %s\n", dlerror());
+
+
+    // Load modules
+    std::vector<comp_entry> modules;
+    {
+        std::vector<int> module_fds = socket_utils::recv_fds(socket);
+        for (int fd : module_fds) {
+            comp_entry entry = nullptr;
+            struct stat s{};
+            if (fstat(fd, &s) == 0 && S_ISREG(s.st_mode)) {
+                android_dlextinfo info {
+                        .flags = ANDROID_DLEXT_USE_LIBRARY_FD,
+                        .library_fd = fd,
+                };
+                if (void *h = android_dlopen_ext("/jit-cache", RTLD_LAZY, &info)) {
+                    *(void **) &entry = dlsym(h, "zygisk_companion_entry");
+                } else {
+                    LOGW("Failed to dlopen zygisk module: %s\n", dlerror());
+                }
+            }
+            modules.push_back(entry);
+            close(fd);
+        }
     }
-    LOGW("android_dlopen_ext lib_fd");
+
+    // ack
+    socket_utils::write_u32(socket, 0);
+
+    // Start accepting requests
+    pollfd pfd = { socket, POLLIN, 0 };
+    for (;;) {
+        poll(&pfd, 1, -1);
+        if (pfd.revents && !(pfd.revents & POLLIN)) {
+            // Something bad happened in magiskd, terminate zygiskd
+            exit(0);
+        }
+        int client = socket_utils::recv_fd(socket);
+        if (client < 0) {
+            // Something bad happened in magiskd, terminate zygiskd
+            exit(0);
+        }
+        int module_id = socket_utils::read_u32(client);
+
+        if (module_id >= 0 && module_id < modules.size() && modules[module_id]) {
+            std::thread new_thread(entry_thread,client,modules[module_id]);
+            new_thread.detach(); // 线程分离，主线程不等待
+        } else {
+            close(client);
+        }
+    }
 
 }

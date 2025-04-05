@@ -54,6 +54,9 @@ namespace socket_utils {
         return rec;
     }
 
+
+
+
     void* recv_fds(int sockfd, char* cmsgbuf, size_t bufsz, int cnt) {
         iovec iov = {
                 .iov_base = &cnt,
@@ -80,6 +83,32 @@ namespace socket_utils {
 
         return CMSG_DATA(cmsg);
     }
+
+    std::vector<int> recv_fds(int sockfd) {
+        std::vector<int> results;
+
+        // Peek fd count to allocate proper buffer
+        int cnt;
+        recv(sockfd, &cnt, sizeof(cnt), MSG_PEEK);
+        if (cnt == 0) {
+            // Consume data
+            recv(sockfd, &cnt, sizeof(cnt), MSG_WAITALL);
+            return results;
+        }
+
+        std::vector<char> cmsgbuf;
+        cmsgbuf.resize(CMSG_SPACE(sizeof(int) * cnt));
+
+        void *data = recv_fds(sockfd, cmsgbuf.data(), cmsgbuf.size(), cnt);
+        if (data == nullptr)
+            return results;
+
+        results.resize(cnt);
+        memcpy(results.data(), data, sizeof(int) * cnt);
+
+        return results;
+    }
+
 
     template<typename T>
     inline T read_exact_or(int fd, T fail) {
