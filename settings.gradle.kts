@@ -19,7 +19,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ALinux-Debug-Inject"
+rootProject.name = "Android-Debug-Inject"
 include(":ADI")
 include(":module")
 include(":Zygisk")
