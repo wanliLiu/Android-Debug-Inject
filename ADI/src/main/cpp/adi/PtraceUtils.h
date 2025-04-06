@@ -239,48 +239,6 @@ int ptrace_readdata(pid_t pid, uint8_t *pSrcBuf, uint8_t *pDestBuf, size_t size)
     return 0;
 }
 
-
-void *get_mmap_address(pid_t pid) {
-    void *dlopen_addr;
-
-    dlopen_addr = get_remote_func_addr(pid, "/apex/com.android.runtime/lib64/bionic/libc.so", (void *) mmap);
-    printf("[+] dlopen RemoteFuncAddr:0x%lx\n", (uintptr_t) dlopen_addr);
-    return dlopen_addr;
-}
-
-void *get_dlsym_address(pid_t pid) {
-    void *dlopen_addr;
-
-    dlopen_addr = get_remote_func_addr(pid, "/apex/com.android.runtime/lib64/bionic/libdl.so", (void *) dlsym);
-    printf("[+] dlopen RemoteFuncAddr:0x%lx\n", (uintptr_t) dlopen_addr);
-    return dlopen_addr;
-}
-void *get_dlopen_address(pid_t pid) {
-    void *dlopen_addr;
-
-    dlopen_addr = get_remote_func_addr(pid, "/apex/com.android.runtime/lib64/bionic/libdl.so", (void *) dlopen);
-    printf("[+] dlopen RemoteFuncAddr:0x%lx\n", (uintptr_t) dlopen_addr);
-    return dlopen_addr;
-}
-
-void *get_dlclose_address(pid_t pid) {
-    void *dlopen_addr;
-
-    dlopen_addr = get_remote_func_addr(pid, "/apex/com.android.runtime/lib64/bionic/libdl.so", (void *) dlclose);
-    printf("[+] dlopen RemoteFuncAddr:0x%lx\n", (uintptr_t) dlopen_addr);
-    return dlopen_addr;
-}
-
-void *get_dlerror_address(pid_t pid) {
-    void *dlopen_addr;
-
-    dlopen_addr = get_remote_func_addr(pid, "/apex/com.android.runtime/lib64/bionic/libdl.so", (void *) dlerror);
-    printf("[+] dlopen RemoteFuncAddr:0x%lx\n", (uintptr_t) dlopen_addr);
-    return dlopen_addr;
-}
-
-
-
 /**
  * @brief 使用ptrace将数据写入到远程进程空间中
  *
@@ -473,10 +431,7 @@ int ptrace_call(pid_t pid, uintptr_t ExecuteAddr, long *parameters, long num_par
     if (atoi(sdk_ver) <= 23){
         lr_val = 0;
     } else { // Android 7.0
-        static uintptr_t start_ptr = 0;
-        if (start_ptr == 0){
-            start_ptr = return_addr;
-        }
+        uintptr_t  start_ptr = return_addr;
         lr_val = start_ptr;
     }
     regs->ARM_lr = lr_val;

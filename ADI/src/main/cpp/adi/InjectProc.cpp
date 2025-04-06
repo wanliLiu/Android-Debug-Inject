@@ -27,7 +27,7 @@
 #include "elf_symbol_resolver.h"
 using namespace std;
 
-bool wait_nativePreFork(pid_t pid, uintptr_t remote_monitor_sym_addr){
+bool wait_FunSym(pid_t pid, uintptr_t remote_monitor_sym_addr){
 
     int status;
     struct pt_regs CurrentRegs;
@@ -176,18 +176,6 @@ bool InjectProc::filter_proce_exec_file(pid_t pid, ContorlProcess &cp)
     return false;
 }
 
-bool InjectProc::filter_zygote_proc(pid_t pid){
-    auto program = get_program(pid);
-    LOGD("filter_zygote_proc %s pid = %d", program.c_str(),pid);
-    if(program =="/system/bin/app_process64"){
-        this->zygote64_pid = pid;
-        return true;
-    }
-    return false;
-}
-
-
-
 
 
 bool inject_process(pid_t pid,const char *LibPath,const char *FunctionName,const char*FunctionArgs){
@@ -197,6 +185,7 @@ bool inject_process(pid_t pid,const char *LibPath,const char *FunctionName,const
         auto remote_map = MapScan(std::to_string(pid));
         auto local_map = MapScan(std::to_string(getpid()));
         uintptr_t libc_return_addr = reinterpret_cast<uintptr_t>(find_module_return_addr(remote_map,"libc.so"));
+        LOGD("[+][function:%s] libc_return_addr:0x%lx\n",__func__ ,(uintptr_t)libc_return_addr);
 
         long parameters[6];
         // CurrentRegs 当前寄存器
@@ -210,7 +199,7 @@ bool inject_process(pid_t pid,const char *LibPath,const char *FunctionName,const
 
         // 获取mmap函数在远程进程中的地址 以便为libxxx.so分配内存
         // 由于mmap函数在libc.so库中 为了将libxxx.so加载到目标进程中 就需要使用目标进程的mmap函数 所以需要查找到libc.so库在目标进程的起始地址
-        void *mmap_addr = get_mmap_address(pid);
+        void *mmap_addr = find_func_addr(local_map,remote_map,"libc.so","mmap");
         LOGD("[+][function:%s] mmap RemoteFuncAddr:0x%lx\n",__func__ ,(uintptr_t)mmap_addr);
 
         // mmap映射 <-- 设置mmap的参数
@@ -237,12 +226,10 @@ bool inject_process(pid_t pid,const char *LibPath,const char *FunctionName,const
 
         // 分别获取dlopen、dlsym、dlclose等函数的地址
         void *dlopen_addr, *dlsym_addr, *dlclose_addr, *dlerror_addr;
-        dlopen_addr = get_dlopen_address(pid);
-        dlsym_addr = get_dlsym_address(pid);
-        dlclose_addr = get_dlclose_address(pid);
-        dlerror_addr = get_dlerror_address(pid);
-
-
+        dlopen_addr =  find_func_addr(local_map,remote_map,"libdl.so","dlopen");
+        dlsym_addr =  find_func_addr(local_map,remote_map,"libdl.so","dlsym");
+        dlclose_addr =  find_func_addr(local_map,remote_map,"libdl.so","dlclose");
+        dlerror_addr =  find_func_addr(local_map,remote_map,"libdl.so","dlerror");
         // 打印一下
         LOGD("[+][function:%s] Get imports: dlopen: %lx, dlsym: %lx, dlclose: %lx, dlerror: %lx",__func__ , dlopen_addr, dlsym_addr, dlclose_addr, dlerror_addr);
 
@@ -356,12 +343,11 @@ void InjectProc::monitor_process(pid_t pid){
 
                     uintptr_t remote_waitFunSym_addr = get_libFile_Symbol_off((char*)cp.waitSoPath.c_str(),(char*)cp.waitFunSym.c_str())+remote_waitSoPath_addr;
                     LOGD("waitFunSym is not nul, wait Fun exec,waitFunSymAddr : %lx",remote_waitFunSym_addr);
-                    wait_nativePreFork(pid,(uintptr_t)remote_waitFunSym_addr);
+                    wait_FunSym(pid, (uintptr_t) remote_waitFunSym_addr);
                 }
                 LOGD("start, inject so to process");
                 inject_process(pid,cp.InjectSO.c_str(), cp.InjectFunSym.c_str(),cp.InjectFunArg.c_str());
                 LOGD("end,   inject so to process");
-
             } else{
                 LOGE("wait_lib_load_get_base:%s failed",cp.waitSoPath.c_str());
 
@@ -374,23 +360,6 @@ void InjectProc::monitor_process(pid_t pid){
         ptrace(PTRACE_CONT, pid, 0, 0);
 
     }
-}
-
-bool InjectProc::inject_zygote64_process() {
-//    uintptr_t  remote_libart_addr = wait_lib_load_get_base(this->zygote64_pid,"libart.so");
-//    auto remote_nativePreFork_addr = remote_libart_addr + get_libFile_Symbol_off("/apex/com.android.art/lib64/libart.so", "_ZN3artL25ZygoteHooks_nativePreForkEP7_JNIEnvP7_jclass");
-//    LOGE("remote_libart_addr:%lx",remote_nativePreFork_addr);
-//    wait_nativePreFork(this->zygote64_pid,remote_nativePreFork_addr);
-//    LOGD("start in nativePreFork");
-//    inject_process(this->zygote64_pid,zygote64_Inject_So.c_str(), "entry",this->requestoSocket.c_str());
-    return true;
-}
-
-
-
-bool InjectProc::inject_zygote32_process() {
-    inject_process(this->zygote32_pid,zygote32_Inject_So.c_str(), "entry",this->requestoSocket.c_str());
-    return true;
 }
 
 
