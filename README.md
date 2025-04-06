@@ -8,23 +8,33 @@
 + 提供高定制化的注入时机选择,在任何进程的任何一个so加载或者任何一个函数的开始执行的时候提供注入时机
 + zygisk 使用的是zygiskNext 的zygisk 以及magisk 的zygiskd服务,经过测试可以支持目前开源的最有一个lsp版本
 
-# 结构
-整个程序分为三部分
-+ adi android-debug-inject 注入工具
-+ zygisk,提供zygisk 以及zyiskd 服务
-+ ADLib, 这是一个注入 drm 进程 的demo,可以修改drm 的id
+# 工程介绍
+
+## 项目结构
++ adi 注入工具，  android-debug-inject 主要注入工具
++ zygisk,提供zygisk 以及zyiskd 服务，单独将zygsk 剥离，使他能够单独使用
++ ADLib, 这是一个注入 drm 进程 的demo,可以修改drm 的id，用于演示注入init子进程
+
+## zygiskADI
+
+通过adi工具注入zygisk，实现zygisk功能，目前已经完成了magisk 模块，可刷机使用
+
 
 # 使用
-通过adi程序输入配置文件,进行监控
-
-通过这个配置文件,将监控zygote启动,并注入libzygisk.so文件
-module/src/zygisk.json
-
-通过这个配置文件,将监控drm进程启动,并注入so文件
-ADILib/src/main/cpp/inject.json
 
 
-# 配置文件参数说明
+## 模块项目使用
+
+目前不建议直接刷入magisk模块开机自启，我暂时关闭了刷机自动启动的命令，可以去post-fs-data.sh 文件打开，开机执行adi程序
+
+## abi程序使用
+通过adi程序输入配置文件,进行监控，可以单独配合你自己的配置文件进行注入，可以动态运行，可刷机和不可刷机都可，只要有权限即可使用，后续可能会融合到rxp工具里动态注入。
+
+## 配置文件例子说明
+通过 module/src/zygisk.json 配置文件,将监控zygote启动,并注入libzygisk.so文件
+通过 ADILib/src/main/cpp/inject.json 配置文件,将监控drm进程启动,并注入so文件
+
+## 配置文件参数说明
 
 ```json
 {  
@@ -53,6 +63,7 @@ waitSoPath和waitFunSym,一般是是配合,表示某个so的某个函数,但这�
 
 
 
+
 ## 问题
 + zygisk commpanion 
 
@@ -64,10 +75,20 @@ waitSoPath和waitFunSym,一般是是配合,表示某个so的某个函数,但这�
 kernelsu 提供的挂在镜像的 /data/adb/module 更是无法支持,init ns里没有挂载这个目录
 如果想要使用这个功能建议自己处理挂在和so权限问题,这是比较简单的,而且我觉得是比较正常的.
 
++ 32 zygisk 不支持
+android 有两个架构的zygote,但是现在32未程序已经很少了，后续看情况支持
+
++ 未进行大规模测试
+
+本程序并未进行大规模手机测试，目前只进行了红米手机测试
+
 
 
 ## 最后
-感谢zygiskNext带来开源部分代码,以及magisk 这些项目,也希望大家且看且珍惜,对开源项目多一点宽容
+感谢zygiskNext的开源代码,以及magisk 这些项目,也希望大家且看且珍惜,对开源项目多一点宽容，安利一波公众号，希望大家支持
+
+![输入图片说明](doc/images/wx.jpg)
+![输入图片说明](doc/images/start.jpg)
 
 
 
