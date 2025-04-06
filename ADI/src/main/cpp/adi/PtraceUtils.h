@@ -334,7 +334,7 @@ int ptrace_writedata(pid_t pid, uint8_t *pWriteAddr, uint8_t *pWriteData, size_t
  * @param regs
  * @return 返回0表示call函数成功，返回-1表示失败
  */
-int ptrace_call(pid_t pid, uintptr_t ExecuteAddr, long *parameters, long num_params,struct pt_regs *regs){
+int ptrace_call(pid_t pid, uintptr_t ExecuteAddr, long *parameters, long num_params,struct pt_regs *regs,uintptr_t return_addr){
 #if defined(__i386__) // 模拟器
     // 写入参数到堆栈
     regs->esp -= (num_params) * sizeof(long); // 分配栈空间，栈的方向是从高地址到低地址
@@ -475,7 +475,7 @@ int ptrace_call(pid_t pid, uintptr_t ExecuteAddr, long *parameters, long num_par
     } else { // Android 7.0
         static uintptr_t start_ptr = 0;
         if (start_ptr == 0){
-            start_ptr = ge_remote_module_base(std::to_string(pid), "libc.so");
+            start_ptr = return_addr;
         }
         lr_val = start_ptr;
     }
@@ -596,13 +596,14 @@ bool remote_ptrace_dlopen(pid_t pid,char*LibPath){
     if (ptrace_getregs(pid, &CurrentRegs) != 0){
         return false;
     }
-    auto map = MapScan(std::to_string(pid));
+    auto remote_map = MapScan(std::to_string(pid));
     auto local_map = MapScan(std::to_string(getpid()));
+    uintptr_t libc_return_addr = reinterpret_cast<uintptr_t>(find_module_return_addr(remote_map, "libc.so"));
 
     memcpy(&OriginalRegs, &CurrentRegs, sizeof(CurrentRegs));
 
     do{
-        void *mmap_addr = find_func_addr(local_map, map, "libc.so", "mmap");
+        void *mmap_addr = find_func_addr(local_map, remote_map, "libc.so", "mmap");
         long parameters[6];
         // mmap映射 <-- 设置mmap的参数
         // void *mmap(void *start, size_t length, int prot, int flags, int fd, off_t offsize);
@@ -614,7 +615,7 @@ bool remote_ptrace_dlopen(pid_t pid,char*LibPath){
         parameters[5] = 0; //文件映射偏移量
 
         // 调用远程进程的mmap函数 建立远程进程的内存映射 在目标进程中为libxxx.so分配内存
-        if (ptrace_call(pid, (uintptr_t)mmap_addr, parameters, 6, &CurrentRegs) == -1){
+        if (ptrace_call(pid, (uintptr_t)mmap_addr, parameters, 6, &CurrentRegs,libc_return_addr) == -1){
             LOGE("[-][function:%s] Call Remote mmap Func Failed, err:%s\n",__func__ , strerror(errno));
             break;
         }
@@ -627,10 +628,10 @@ bool remote_ptrace_dlopen(pid_t pid,char*LibPath){
         LOGD("[+][function:%s] Remote Process Map Memory Addr:0x%lx\n",__func__ , RemoteMapMemoryAddr);
 
 //    // 分别获取dlopen、dlsym、dlclose等函数的地址
-        auto dlopen_addr = find_func_addr(local_map, map, "libdl.so", "dlopen");
-        auto dlsym_addr = find_func_addr(local_map, map, "libdl.so", "dlsym");
-        auto dlclose_addr = find_func_addr(local_map, map, "libdl.so", "dlclose");
-        auto dlerror_addr = find_func_addr(local_map, map, "libdl.so", "dlerror");
+        auto dlopen_addr = find_func_addr(local_map, remote_map, "libdl.so", "dlopen");
+        auto dlsym_addr = find_func_addr(local_map, remote_map, "libdl.so", "dlsym");
+        auto dlclose_addr = find_func_addr(local_map, remote_map, "libdl.so", "dlclose");
+        auto dlerror_addr = find_func_addr(local_map, remote_map, "libdl.so", "dlerror");
 
         //    // 打印一下
 //    LOGD("[+][function:%s] Get imports: dlopen: %lx, dlsym: %lx, dlclose: %lx, dlerror: %lx\n",__func__ , dlopen_addr, dlsym_addr, dlclose_addr, dlerror_addr);
@@ -653,7 +654,7 @@ bool remote_ptrace_dlopen(pid_t pid,char*LibPath){
         parameters[1] = RTLD_NOW ; // dlopen的标识                            不能使用RTLD_GLOBAL ,会导致无法dlclose 无法关闭so库
 
         // 执行dlopen 载入so
-        if (ptrace_call(pid, (uintptr_t) dlopen_addr, parameters, 2, &CurrentRegs) == -1) {
+        if (ptrace_call(pid, (uintptr_t) dlopen_addr, parameters, 2, &CurrentRegs,libc_return_addr) == -1) {
             LOGE("[-][function:%s] Call Remote dlopen Func Failed\n",__func__ );
             break;
         }
@@ -664,7 +665,7 @@ bool remote_ptrace_dlopen(pid_t pid,char*LibPath){
 
         // dlopen 错误
         if ((long) RemoteModuleAddr == 0x0){
-            if (ptrace_call(pid, (uintptr_t) dlerror_addr, parameters, 0, &CurrentRegs) == -1) {
+            if (ptrace_call(pid, (uintptr_t) dlerror_addr, parameters, 0, &CurrentRegs,libc_return_addr) == -1) {
                 LOGE("[-][function:%s] Call Remote dlerror Func Failed\n",__func__ );
                 break;
             }

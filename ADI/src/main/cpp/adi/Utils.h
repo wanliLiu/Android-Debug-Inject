@@ -216,7 +216,7 @@ bool ends_with(std::string_view str, std::string_view suffix) {
            str.substr(str.size() - suffix.size()) == suffix;
 }
 
-uintptr_t ge_remote_module_base(const std::string& pid,const std::string& libName){
+uintptr_t get_remote_module_base(const std::string& pid,const std::string& libName){
 
     constexpr static auto kPermLength = 5;
     constexpr static auto kMapEntry = 7;

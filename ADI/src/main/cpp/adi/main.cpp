@@ -170,7 +170,6 @@ int main(int argc, char *argv[]) {
     injectProc.setTracePid(traced_pid);
     std::thread ptraceThread(PtraceTask);
     ptraceThread.join();
-//    func_test();
     return 0;
 }
 

@@ -4,9 +4,9 @@
 	"childProcess": [
 		{
 			"exec": "/vendor/bin/hw/android.hardware.drm@1.4-service.widevine",
-			"waitSoPath": "/system/lib64/liblog.so",
+			"waitSoPath": "",
 			"waitFunSym": "",
-			"InjectSO": "/data/local/tmp/libDrmHook.so",
+			"InjectSO": "/data/adb/modules/ZygiskADI/lib/arm64-v8a/libDrmHook.so",
 			"InjectFunSym": "DrmIdHook",
 			"InjectFunArg": "11111111111193baf8cb6a22de8a5ae4bfecc174b1a9405dc71b8b3fac1c734f"
 		}
