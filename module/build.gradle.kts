@@ -18,8 +18,8 @@ android{
 var git = Grgit.open{  dir = rootProject.rootDir  } // 明确指定目录
 
 
-val moduleId by extra("dZygisk")
-val moduleName by extra("Android Debug Inject Zygisk")
+val moduleId by extra("ZygiskADI")
+val moduleName by extra("Android Linux Debug Inject Zygisk")
 val verName by extra("v0-0.1")
 val verCode by extra(git.log().size)
 val commitHash by extra(git.head().abbreviatedId)
@@ -30,11 +30,11 @@ androidComponents.onVariants { variant ->
     val variantCapped = variant.name.capitalizeUS()
     val buildTypeLowered = variant.buildType?.lowercase()
     val moduleDir = layout.buildDirectory.dir("outputs/module/$variantLowered")
-    val zipFileName = "$moduleName-$verName-$verCode-$commitHash-$buildTypeLowered.zip".replace(' ', '-')
+    val zipFileName = "$moduleId-$verName-$verCode-$commitHash-$buildTypeLowered.zip".replace(' ', '-')
     val prepareModuleFilesTask = task<Sync>("prepareModuleFiles$variantCapped") {
 
         dependsOn(
-            ":DebugInject:externalNativeBuild$variantCapped",
+            ":ADI:externalNativeBuild$variantCapped",
             ":Zygisk:externalNativeBuild$variantCapped",
             ":ADILib:externalNativeBuild$variantCapped",
         )
@@ -59,7 +59,7 @@ androidComponents.onVariants { variant ->
         }
         into("bin"){
             from(project(":Zygisk").layout.buildDirectory.file("intermediates/cmake/$variantLowered/obj/arm64-v8a/zygiskd"))
-            from(project(":DebugInject").layout.buildDirectory.file("intermediates/cmake/$variantLowered/obj/arm64-v8a/ptraceInit"))
+            from(project(":ADI").layout.buildDirectory.file("intermediates/cmake/$variantLowered/obj/arm64-v8a/adi"))
 
         }
 

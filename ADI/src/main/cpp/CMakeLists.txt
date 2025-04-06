@@ -5,4 +5,5 @@
 # Sets the minimum CMake version required for this project.
 cmake_minimum_required(VERSION 3.22.1)
 
-add_subdirectory(ptraceInit)
+add_subdirectory(adi)
+add_subdirectory(generalInjectTool)

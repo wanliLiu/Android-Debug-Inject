@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22.1)
-project (ptraceInit)
+project (generalInjectTool)
 # The version number.
 set (Tutorial_VERSION_MAJOR 1)
 set (Tutorial_VERSION_MINOR 0)
@@ -11,13 +11,5 @@ set (Tutorial_VERSION_MINOR 0)
 # so that we will find TutorialConfig.h
 
 # add the executable
+add_executable(generalInjectTool InjectTool.cpp)
 
-set(CMAKE_CXX_STANDARD 17)
-
-
-
-add_executable(ptraceInit main.cpp InjectProc.cpp logging.cpp elf_symbol_resolver.cpp)
-
-target_link_libraries( # Specifies the target library.
-        ptraceInit
-        log)

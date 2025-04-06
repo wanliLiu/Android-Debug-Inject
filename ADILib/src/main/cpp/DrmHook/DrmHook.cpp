@@ -107,7 +107,9 @@ std::vector<uint8_t> hex_string_to_bytes(std::string& hex) {
     return bytes;
 }
 
-void DrmIdHook(const char* AUTHORITY){
+//./generalInjectTool -p 10897 -so /data/local/tmp/libDrmHook.so -symbols _Z9DrmIdHookPKc 11111111111193baf8cb6a22de8a5ae4bfecc174b1a9405dc71b8b3fac1c734f
+
+void DrmIdHook(void* handle, const char* AUTHORITY) {
     LOGE("DrmIdHook start1 %s\n",AUTHORITY);
     std::string tmp_string = strdup(AUTHORITY);
     std::vector<uint8_t> memory = hex_string_to_bytes(tmp_string);

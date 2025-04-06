@@ -20,7 +20,7 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ALinux-Debug-Inject"
-include(":DebugInject")
+include(":ADI")
 include(":module")
 include(":Zygisk")
 include(":ADILib")
