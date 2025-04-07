@@ -1,5 +1,3 @@
-# 项目地址
-[Thehepta/Android-Debug-Inject](https://github.com/Thehepta/Android-Debug-Inject)
 
 # 开发初衷
 这个项目的开发主是因为于zygiskNext 老版本特征太多了，我改了很多，后来发现需要有些部分需要大改才能完成对抗，索性注入工具部分完全重写了。
