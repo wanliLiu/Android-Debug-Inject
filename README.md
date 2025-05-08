@@ -64,9 +64,9 @@ waitSoPath和waitFunSym,一般是是配合,表示某个so的某个函数,但这�
 
 + init 子进程的问题
 
-  提供init子进程注入功能,但是目前的zygisk 设计框架可能不一定是适合,比如selinux权限这些  
-  kernelsu 提供的挂在镜像的 /data/adb/module 更是无法支持,init ns里没有挂载这个目录  
-  如果想要使用这个功能建议自己处理挂在和so权限问题,这是比较简单的,而且我觉得是比较正常的.
+  1、提供init子进程注入功能,但是目前的zygisk 设计框架可能不一定是适合,比如selinux权限这些  
+  2、kernelsu 提供的挂在镜像的 /data/adb/module 更是无法支持,init ns里没有挂载这个目录 
+  3、如果想要使用这个功能建议自己处理挂载路径和so权限问题,这比较简单的,而且我觉得是比较正常的.
 
 + 32 zygisk 不支持  
   android 有两个架构的zygote,但是现在32未程序已经很少了，后续看情况支持
