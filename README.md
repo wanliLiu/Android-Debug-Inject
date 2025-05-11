@@ -49,7 +49,7 @@
           "waitFunSym": "",                 等待这个函数执行在继续执行   
           "InjectSO": "/data/adb/modules/ZygiskADI/lib/arm64-v8a/libDrmHook.so",  要加载的so文件  
           "InjectFunSym": "DrmIdHook",         要执行的函数  
-          "InjectFunArg": "11111111111193baf8cb6a22de8a5ae4bfecc174b1a9405dc71b8b3fac1c734f" ,   函数参数,目前只支持一个,会传入第二个参数,第一个为so的handle
+          "InjectFunArg": "11111111111193baf8cb6a22de8a5ae4bfecc174b1a9405dc71b8b3fac1c734f" ,   函数参数,目前只支持一个参数,并且这个参数会传入到第二个参数的位置里,第一个为so的handle
           "monitorCount": 10  监控的次数，如果失败了，注入程序不懂程序，超过次数就不会再注入了，
        }]
 }
@@ -60,8 +60,6 @@
 
 waitSoPath 尽量不要不写  
 waitFunSym 可以不写,如果不写,将在so加载以后直接加载so.
-
-
 waitSoPath和waitFunSym,一般是是配合,表示某个so的某个函数,但这个函数执行以后执行hook代码
 
 
@@ -83,6 +81,11 @@ waitSoPath和waitFunSym,一般是是配合,表示某个so的某个函数,但这�
 
 + 未进行大规模测试
   本程序并未进行大规模手机测试，目前只进行了红米手机测试
+
++ magisk 上无法自动启动
+  我目前一般在kernelsu上开发，在magisk上测试了一下，发现这个模块pose-fd-data.sh 脚本无法运行，可能是我哪里写的有问题，目前没有做兼容，如果你有这方面的需求可以联系我或者自己修复一下，哦，手动运行测试是没有问题的
+
+
 
 
 ## 最后
