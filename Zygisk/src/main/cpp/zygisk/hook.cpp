@@ -197,13 +197,6 @@ ret new_##func(__VA_ARGS__)
 
     void initialize_jni_hook();
 
-    DCL_HOOK_FUNC(char *, strdup, const char *s) {
-        if (s == "com.android.internal.os.ZygoteInit"sv) {
-            LOGV("strdup %s\n", s);
-            initialize_jni_hook();
-        }
-        return old_strdup(s);
-    }
 
 #undef DCL_HOOK_FUNC
 
