@@ -26,7 +26,8 @@ void entry(void* handle, const char* path) {
     LOGD("dl_info1 :%s ",dl_info.dli_fname);
     LOGD("dl_info1 :%p ",dl_info.dli_fbase);
 
-    size_t size = clean_trace(dl_info.dli_fname, 1, 0, false);
+//    size_t size = clean_trace(dl_info.dli_fname, 1, 0, false);
     LOGD("Start hooking");
-    hook_functions(dl_info.dli_fbase,size);
+//    hook_functions(dl_info.dli_fbase,size);
+    hook_functions(0,0);
 }

@@ -1,0 +1,15 @@
+{
+	"traced_pid": 1,
+	"persistence": true,
+	"childProcess": [
+		{
+			"exec": "/system/bin/app_process64",
+			"waitSoPath": "",
+			"waitFunSym": "",
+			"InjectSO": "/apex/com.android.syzuel/lib64/libsyzuel.so",
+			"InjectFunSym": "entry",
+			"InjectFunArg": "d63138f231",
+			"monitorCount": 10
+		}
+	]
+}
