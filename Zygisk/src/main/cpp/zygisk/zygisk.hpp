@@ -6,7 +6,7 @@
 
 extern void *self_handle;
 
-void hook_functions();
+void hook_functions(void* so_start_addr,   size_t so_size) ;
 
 void revert_unmount_ksu();
 

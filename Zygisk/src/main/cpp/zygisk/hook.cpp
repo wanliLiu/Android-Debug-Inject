@@ -30,6 +30,9 @@ using namespace std;
 static void hook_unloader();
 static void unhook_functions();
 
+static uintptr_t so_start_addr = 0;
+static size_t so_size = 0;
+
 namespace {
 
     enum {
@@ -195,7 +198,52 @@ ret new_##func(__VA_ARGS__)
         return res;
     }
 
+    DCL_HOOK_FUNC(static int, pthread_attr_setstacksize, void *target, size_t size) {
+        int res = old_pthread_attr_setstacksize((pthread_attr_t *) target, size);
+
+        LOGV("pthread_attr_setstacksize called in [tid, pid]: %d, %d", gettid(), getpid());
+        // Only perform unloading on the main thread
+        if (gettid() != getpid()) return res;
+        void *start_addr = nullptr;
+        size_t block_size = 0;
+
+        if (should_unmap_zygisk) {
+            unhook_functions();
+            if (should_unmap_zygisk) {
+//                for (auto &info: lsplt::MapInfo::Scan()) {
+//
+//                    if (strstr(info.path.c_str(), "libzygisk.so")) {
+//                        void *addr = (void *) info.start;
+//                        if (start_addr == nullptr) start_addr = addr;
+//                        size_t size = info.end - info.start;
+//                        block_size += size;
+//                        LOGD("found block %s: [%p-%p] with size %zu", info.path.c_str(), addr, (void *) info.end, size);
+//                    }
+//                }
+                // Because both `pthread_attr_setstacksize` and `munmap` have the same function
+                // signature, we can use `musttail` to let the compiler reuse our stack frame and thus
+                // `munmap` will directly return to the caller of `pthread_attr_setstacksize`.
+                LOGD("unmap libzygisk.so loaded at %lx with size %zu", so_start_addr, so_size);
+                [[clang::musttail]] return munmap((void*)so_start_addr, so_size);
+            }
+        }
+
+        return res;
+    }
+
+
+
     void initialize_jni_hook();
+
+
+    DCL_HOOK_FUNC(char *, strdup, const char *s) {
+        if (s == "com.android.internal.os.ZygoteInit"sv) {
+            LOGD("strdup %s\n", s);
+            initialize_jni_hook();
+        }
+        return old_strdup(s);
+    }
+
 
 
 #undef DCL_HOOK_FUNC
@@ -747,8 +795,9 @@ static void hook_register(dev_t dev, ino_t inode, const char *symbol, void *new_
 #define PLT_HOOK_REGISTER(DEV, INODE, NAME) \
     PLT_HOOK_REGISTER_SYM(DEV, INODE, #NAME, NAME)
 
-void hook_functions() {
-
+void hook_functions( void* start_addr,   size_t size) {
+    so_start_addr = (uintptr_t )start_addr;
+    so_size = size;
     default_new(plt_hook_list);
     default_new(jni_hook_list);
 
@@ -766,7 +815,7 @@ void hook_functions() {
 
     PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, fork);
     PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, unshare);
-
+    PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, strdup);
     hook_commit();
 //
 //    // Remove unhooked methods
@@ -775,11 +824,13 @@ void hook_functions() {
                            [](auto &t) { return *std::get<3>(t) == nullptr;}),
             plt_hook_list->end());
 
-    initialize_jni_hook();
+//    initialize_jni_hook();
 
 }
 
 static void hook_unloader() {
+    LOGD("start hook_unloader\n");
+
     ino_t art_inode = 0;
     dev_t art_dev = 0;
 
@@ -790,8 +841,8 @@ static void hook_unloader() {
             break;
         }
     }
-
-    PLT_HOOK_REGISTER(art_dev, art_inode, pthread_attr_destroy);
+    PLT_HOOK_REGISTER(art_dev, art_inode, pthread_attr_setstacksize);
+//    PLT_HOOK_REGISTER(art_dev, art_inode, pthread_attr_destroy);
     hook_commit();
 }
 
