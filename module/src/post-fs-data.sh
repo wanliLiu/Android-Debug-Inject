@@ -26,5 +26,5 @@ fi
 
 #  must usr &
 ./bin/zygiskd unix_socket d63138f231 &
-./bin/adi  $MODDIR/zygisk5.json &
+./bin/adi  $MODDIR/zygisk3.json &
 
