@@ -6,7 +6,7 @@
 			"exec": "/system/bin/app_process64",
 			"waitSoPath": "",
 			"waitFunSym": "",
-			"InjectSO": "/data/adb/modules/zygiskADI/lib/arm64-v8a/libzygisk.so",
+			"InjectSO": "/data/adb/modules/zygiskADI/lib/arm64-v8a/libsyzuel.so",
 			"InjectFunSym": "entry",
 			"InjectFunArg": "d63138f231",
 			"monitorCount": 10

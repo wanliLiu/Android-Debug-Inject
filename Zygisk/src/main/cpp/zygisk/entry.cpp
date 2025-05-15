@@ -19,15 +19,14 @@ void entry(void* handle, const char* path) {
 //#ifdef NDEBUG
 //    logging::setfd(zygiskd::RequestLogcatFd());
 //#endif
-    Dl_info dl_info;
-    dladdr((void*)entry, reinterpret_cast<Dl_info *>(&dl_info));
 
-//    addr  0x755d921000 size 835584
-    LOGD("dl_info1 :%s ",dl_info.dli_fname);
-    LOGD("dl_info1 :%p ",dl_info.dli_fbase);
-
-//    size_t size = clean_trace(dl_info.dli_fname, 1, 0, false);
     LOGD("Start hooking");
-//    hook_functions(dl_info.dli_fbase,size);
-    hook_functions(0,0);
+    hook_functions();
+    Dl_info dl_info;
+    dladdr((void*)hook_functions, reinterpret_cast<Dl_info *>(&dl_info));
+    string file_path = dl_info.dli_fname;
+    uintptr_t so_start_addr = (uintptr_t)dl_info.dli_fbase;
+    size_t so_size = remove_soinfo(file_path.c_str(), 1, 0, false);
+    setValue(so_start_addr,so_size);
+//    reSoMap(file_path.c_str());
 }

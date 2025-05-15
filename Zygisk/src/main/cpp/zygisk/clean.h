@@ -7,6 +7,6 @@
 
 
 
-size_t  clean_trace(const char *path, size_t load, size_t unload, bool spoof_maps);
-
+size_t  remove_soinfo(const char *path, size_t load, size_t unload, bool spoof_maps);
+void reSoMap(const char *path);
 #endif //ANDROID_DEBUG_INJECT_CLEAN_H

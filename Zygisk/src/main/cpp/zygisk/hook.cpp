@@ -22,6 +22,7 @@
 #include "module.hpp"
 #include "files.hpp"
 #include "misc.hpp"
+#include "clean.h"
 
 #include "art_method.hpp"
 
@@ -32,6 +33,7 @@ static void unhook_functions();
 
 static uintptr_t so_start_addr = 0;
 static size_t so_size = 0;
+std::vector<lsplt::MapInfo> cached_map_infos = {};
 
 namespace {
 
@@ -204,8 +206,6 @@ ret new_##func(__VA_ARGS__)
         LOGV("pthread_attr_setstacksize called in [tid, pid]: %d, %d", gettid(), getpid());
         // Only perform unloading on the main thread
         if (gettid() != getpid()) return res;
-        void *start_addr = nullptr;
-        size_t block_size = 0;
 
         if (should_unmap_zygisk) {
             unhook_functions();
@@ -786,9 +786,7 @@ static void hook_register(dev_t dev, ino_t inode, const char *symbol, void *new_
 #define PLT_HOOK_REGISTER(DEV, INODE, NAME) \
     PLT_HOOK_REGISTER_SYM(DEV, INODE, #NAME, NAME)
 
-void hook_functions( void* start_addr,   size_t size) {
-    so_start_addr = (uintptr_t )start_addr;
-    so_size = size;
+void hook_functions() {
     default_new(plt_hook_list);
     default_new(jni_hook_list);
 
@@ -796,7 +794,9 @@ void hook_functions( void* start_addr,   size_t size) {
 
     ino_t android_runtime_inode = 0;
     dev_t android_runtime_dev = 0;
-    for (auto &map : lsplt::MapInfo::Scan()) {
+    cached_map_infos = lsplt::MapInfo::Scan();
+
+    for (auto &map : cached_map_infos) {
         if (map.path.ends_with("libandroid_runtime.so")) {
             android_runtime_inode = map.inode;
             android_runtime_dev = map.dev;
@@ -807,16 +807,20 @@ void hook_functions( void* start_addr,   size_t size) {
     PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, fork);
     PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, unshare);
     PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, strdup);
-    hook_commit();
+    if (!lsplt::CommitHook(cached_map_infos)) LOGE("plt_hook failed\n");
+
 //
 //    // Remove unhooked methods
-    plt_hook_list->erase(
-            std::remove_if(plt_hook_list->begin(), plt_hook_list->end(),
-                           [](auto &t) { return *std::get<3>(t) == nullptr;}),
-            plt_hook_list->end());
+    plt_hook_list->erase(std::remove_if(plt_hook_list->begin(), plt_hook_list->end(),[](auto &t) { return *std::get<3>(t) == nullptr;}), plt_hook_list->end());
 
 //    initialize_jni_hook();
 
+
+}
+
+void setValue(uintptr_t start_addr ,size_t size){
+    so_start_addr = start_addr;
+    so_size = size;
 }
 
 static void hook_unloader() {
@@ -832,7 +836,7 @@ static void hook_unloader() {
             break;
         }
     }
-//    PLT_HOOK_REGISTER(art_dev, art_inode, pthread_attr_setstacksize);
+    PLT_HOOK_REGISTER(art_dev, art_inode, pthread_attr_setstacksize);
 //    PLT_HOOK_REGISTER(art_dev, art_inode, pthread_attr_destroy);
     hook_commit();
 }

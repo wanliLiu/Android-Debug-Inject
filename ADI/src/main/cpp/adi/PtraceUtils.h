@@ -391,7 +391,7 @@ int ptrace_call(pid_t pid, uintptr_t ExecuteAddr, long *parameters, long num_par
     }
 
 #elif defined(__arm__) || defined(__aarch64__) // 真机
-    #if defined(__arm__) // 32位真机
+#if defined(__arm__) // 32位真机
     int num_param_registers = 4;
 #elif defined(__aarch64__) // 64位真机
     int num_param_registers = 8;
@@ -449,12 +449,30 @@ int ptrace_call(pid_t pid, uintptr_t ExecuteAddr, long *parameters, long num_par
 
     // 判断是否成功执行函数
     LOGD("[+] ptrace call ret status is %d\n", stat);
-    while ((stat & 0xFF) != 0x7f){
-        if (ptrace_continue(pid) == -1){
-            LOGE("[-] ptrace call error\n");
-            return -1;
+    while (true){
+        if ((stat & 0xFF) != 0x7f){
+            if (ptrace_continue(pid) == -1){
+                LOGE("[-] ptrace call error\n");
+                return -1;
+            }
+            waitpid(pid, &stat, WUNTRACED);
+            break;
+        } else {
+            // 如果等于7f 说明程序运行发生错误
+            if (WSTOPSIG(stat) == SIGSEGV) {
+                if (ptrace_getregs(pid, regs) == -1){
+                    LOGE("[-] After call getregs error\n");
+                    return -1;
+                }
+                LOGE("[-] child process is SIGSEGV \n");
+                if (static_cast<uintptr_t>(regs->pc) != return_addr) {
+                    LOGE("wrong return addr %p", (void *) regs->pc);
+                    return 0;
+                }
+                return regs->pc;
+            }
+
         }
-        waitpid(pid, &stat, WUNTRACED);
     }
 
     // 获取远程进程的寄存器值，方便获取返回值

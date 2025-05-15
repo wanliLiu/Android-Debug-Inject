@@ -5,16 +5,9 @@
 #include "logging.h"
 #include "solist.hpp"
 
-size_t  clean_trace(const char *path, size_t load, size_t unload, bool spoof_maps) {
-    LOGD("cleaning trace for path %s", path);
 
-    if (load > 0 || unload > 0) SoList::resetCounters(load, unload);
-    size_t size_found = SoList::dropSoPath(path);
-//    if (!(size_found !=-1) || !spoof_maps) return;
-
+void reSoMap(const char *path){
     LOGD("spoofing virtual maps for %s", path);
-    // spoofing map names is futile in Android, we do it simply
-    // to avoid Zygisk detections based on string comparison
     for (auto &map : lsplt::MapInfo::Scan()) {
         if (strstr(map.path.c_str(), path)) {
             void *addr = (void *) map.start;
@@ -34,6 +27,18 @@ size_t  clean_trace(const char *path, size_t load, size_t unload, bool spoof_map
             mprotect(addr, size, map.perms);
         }
     }
+}
+
+
+size_t  remove_soinfo(const char *path, size_t load, size_t unload, bool spoof_maps) {
+    LOGD("cleaning trace for path %s", path);
+    if (load > 0 || unload > 0) SoList::resetCounters(load, unload);
+    size_t size_found = SoList::dropSoPath(path);
+//    if (!(size_found !=-1) || !spoof_maps) return;
+    if(size_found == -1){
+        return -1;
+    }
+
     return size_found;
 }
 
@@ -85,9 +90,9 @@ bool initialize() {
         linker.getSymbAddress("__dl__ZNK6soinfo12get_realpathEv"));
     if (SoInfo::get_realpath_sym != nullptr) LOGD("found symbol get_realpath_sym");
 
-    SoInfo::get_soname = reinterpret_cast<decltype(SoInfo::get_soname)>(
-            linker.getSymbAddress("__dl__ZNK6soinfo10get_sonameEv"));
-    if (SoInfo::get_soname != nullptr) LOGD("found symbol get_soname");
+//    SoInfo::get_soname = reinterpret_cast<decltype(SoInfo::get_soname)>(
+//            linker.getSymbAddress("__dl__ZNK6soinfo10get_sonameEv"));
+//    if (SoInfo::get_soname != nullptr) LOGD("found symbol get_soname");
 
     SoInfo::soinfo_free =
         reinterpret_cast<decltype(SoInfo::soinfo_free)>(linker.getSymbAddress(soinfo_free_name));
@@ -158,13 +163,12 @@ size_t dropSoPath(const char *target_path) {
         if (iter->getPath() && strstr(iter->getPath(), target_path)) {
             SoList::ProtectedDataGuard guard;
             size_found = iter->getSize();
-            LOGD("dropping solist record for %s with size %zu", iter->getPath(), size_found);//.831488
+            LOGD("dropping solist record for %s addr %lx with size %zu", iter->getPath(), iter,size_found);//.831488
             if (iter->getSize() > 0) {
                 iter->setSize(0);
                 SoInfo::soinfo_free(iter);
 //                const char* soname = iter->getSoname();
 //                LOGE("soinfo soname %s  soname_addr %p addr %lx",soname,soname,iter);  //  7604c573b0
-                LOGE("soinfo  addr %lx",iter);  // 0x726257c4c9 addr 726257c340
 //                memset(iter,0, strlen(soname));
 //                LOGE("soinfo addr next 0x%x",iter->getNext());
             }
