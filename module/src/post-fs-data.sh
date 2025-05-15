@@ -17,9 +17,9 @@ export TMP_PATH=/apex/com.android.syzuel
 create_sys_perm $TMP_PATH
 mount -t tmpfs tmpfs $TMP_PATH
 
-if [ -f $MODDIR/lib/arm64-v8a/libsyzuel.so ];then
+if [ -f $MODDIR/lib/arm64-v8a/libzygisk.so ];then
   create_sys_perm $TMP_PATH/lib64
-  cp $MODDIR/lib/arm64-v8a/libsyzuel.so $TMP_PATH/lib64/libsyzuel.so
+  cp $MODDIR/lib/arm64-v8a/libzygisk.so $TMP_PATH/lib64/libsyzuel.so
   chcon u:object_r:system_file:s0 $TMP_PATH/lib64/libsyzuel.so
 fi
 

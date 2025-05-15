@@ -54,7 +54,7 @@ androidComponents.onVariants { variant ->
         }
 
         into("lib/arm64-v8a"){
-            from(project(":Zygisk").layout.buildDirectory.file("intermediates/cmake/$variantLowered/obj/arm64-v8a/libsyzuel.so"))
+            from(project(":Zygisk").layout.buildDirectory.file("intermediates/cmake/$variantLowered/obj/arm64-v8a/libzygisk.so"))
             from(project(":ADILib").layout.buildDirectory.file("intermediates/cmake/$variantLowered/obj/arm64-v8a/libDrmHook.so"))
         }
         into("bin"){

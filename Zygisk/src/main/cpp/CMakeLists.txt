@@ -11,9 +11,7 @@ cmake_minimum_required(VERSION 3.22.1)
 # build script scope).
 project("zygisk")
 
-# The version number.
-set (Tutorial_VERSION_MAJOR 1)
-set (Tutorial_VERSION_MINOR 0)
+set(CMAKE_CXX_STANDARD 23)
 
 # configure a header file to pass some of the CMake settings
 # to the source code
@@ -35,7 +33,7 @@ add_executable(zygiskd ${ZYGISKD_SRC_LIST})
 target_link_libraries(zygiskd log common)
 
 aux_source_directory(zygisk ZYGISK_SRC_LIST)
-add_library(syzuel SHARED ${ZYGISK_SRC_LIST})
-target_link_libraries(syzuel  log common lsplt_static)
+add_library(zygisk SHARED ${ZYGISK_SRC_LIST})
+target_link_libraries(zygisk  log common lsplt_static)
 
 
