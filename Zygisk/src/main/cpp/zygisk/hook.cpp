@@ -164,7 +164,7 @@ DCL_HOOK_FUNC(int, pthread_attr_destroy, void *target) {
             // Because both `pthread_attr_destroy` and `dlclose` have the same function signature,
             // we can use `musttail` to let the compiler reuse our stack frame and thus
             // `dlclose` will directly return to the caller of `pthread_attr_destroy`.
-            [[clang::musttail]] return dlclose(g_hook->self_handle);
+            [[clang::musttail]] return dlclose(self_handle);
         }
     }
 
@@ -263,7 +263,7 @@ void HookContext::hook_plt() {
 
     PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, fork);
     PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, unshare);
-    PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, strdup);
+//    PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, strdup);
 
     if (!lsplt::CommitHook(cached_map_infos)) LOGE("plt_hook failed\n");
 
@@ -285,7 +285,8 @@ void HookContext::hook_unloader() {
         }
     }
 
-    PLT_HOOK_REGISTER(art_dev, art_inode, pthread_attr_setstacksize);
+//    PLT_HOOK_REGISTER(art_dev, art_inode, pthread_attr_setstacksize);
+    PLT_HOOK_REGISTER(art_dev, art_inode, pthread_attr_destroy);
     if (!lsplt::CommitHook(cached_map_infos)) LOGE("plt_hook failed\n");
 }
 
@@ -401,19 +402,13 @@ void HookContext::restore_zygote_hook(JNIEnv *env) {
 
 // -----------------------------------------------------------------
 
-void hook_entry(void * handle) {
-//    g_hook->self_handle = handle;
+void hook_entry(void *start_addr, size_t block_size) {
 
-    Dl_info dl_info;
-    dladdr((void*)hook_entry, reinterpret_cast<Dl_info *>(&dl_info));
-    string file_path = dl_info.dli_fname;
-    void* so_start_addr =dl_info.dli_fbase;
-    LOGD("hook_entry %s addr %p",file_path.c_str(),so_start_addr);
-    size_t so_size = remove_soinfo(file_path.c_str(), 1, 0, false);
-    LOGD("hook_entry so_size %zu ",so_size);
-    g_hook = new HookContext(so_start_addr, so_size);
+    g_hook = new HookContext(start_addr, block_size);
     g_hook->hook_plt();
-//    clean_trace(zygiskd::GetTmpPath().data(), 1, 0, false);
+
+    g_hook->hook_zygote_jni();
+    g_hook->cached_map_infos = lsplt::MapInfo::Scan();
 }
 
 void hookJniNativeMethods(JNIEnv *env, const char *clz, JNINativeMethod *methods, int numMethods) {
