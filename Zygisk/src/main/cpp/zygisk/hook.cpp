@@ -93,8 +93,10 @@ HookContext *g_hook;
 
 DCL_HOOK_FUNC(static char *, strdup, const char *str) {
     if (strcmp(kZygoteInit, str) == 0) {
-        g_hook->hook_zygote_jni();
-        g_hook->cached_map_infos = lsplt::MapInfo::Scan();
+        if(!g_hook->is_zygote_hook){
+            g_hook->hook_zygote_jni();
+            g_hook->cached_map_infos = lsplt::MapInfo::Scan();
+        }
     }
     return old_strdup(str);
 }
@@ -263,7 +265,7 @@ void HookContext::hook_plt() {
 
     PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, fork);
     PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, unshare);
-//    PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, strdup);
+    PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, strdup);
 
     if (!lsplt::CommitHook(cached_map_infos)) LOGE("plt_hook failed\n");
 
@@ -285,8 +287,8 @@ void HookContext::hook_unloader() {
         }
     }
 
-//    PLT_HOOK_REGISTER(art_dev, art_inode, pthread_attr_setstacksize);
-    PLT_HOOK_REGISTER(art_dev, art_inode, pthread_attr_destroy);
+    PLT_HOOK_REGISTER(art_dev, art_inode, pthread_attr_setstacksize);
+//    PLT_HOOK_REGISTER(art_dev, art_inode, pthread_attr_destroy);
     if (!lsplt::CommitHook(cached_map_infos)) LOGE("plt_hook failed\n");
 }
 
@@ -306,14 +308,14 @@ void HookContext::restore_plt_hook() {
 
 // -----------------------------------------------------------------
 
-void HookContext::hook_jni_methods(JNIEnv *env, const char *clz, JNIMethods methods) {
+bool HookContext::hook_jni_methods(JNIEnv *env, const char *clz, JNIMethods methods) {
     auto clazz = env->FindClass(clz);
     if (clazz == nullptr) {
         env->ExceptionClear();
         for (auto &method : methods) {
             method.fnPtr = nullptr;
         }
-        return;
+        return false;
     }
 
     vector<JNINativeMethod> hooks;
@@ -346,11 +348,12 @@ void HookContext::hook_jni_methods(JNIEnv *env, const char *clz, JNIMethods meth
         native_method.fnPtr = original_method;
     }
 
-    if (hooks.empty()) return;
+    if (hooks.empty()) return false;
     env->RegisterNatives(clazz, hooks.data(), hooks.size());
+    return true;
 }
 
-void HookContext::hook_zygote_jni() {
+bool HookContext::hook_zygote_jni() {
     auto get_created_java_vms = reinterpret_cast<jint (*)(JavaVM **, jsize, jsize *)>(
             dlsym(RTLD_DEFAULT, "JNI_GetCreatedJavaVMs"));
     if (!get_created_java_vms) {
@@ -368,16 +371,16 @@ void HookContext::hook_zygote_jni() {
         }
         if (!get_created_java_vms) {
             LOGW("JNI_GetCreatedJavaVMs not found\n");
-            return;
+            return false;
         }
     }
     JavaVM *vm = nullptr;
     jsize num = 0;
     jint res = get_created_java_vms(&vm, 1, &num);
-    if (res != JNI_OK || vm == nullptr) return;
+    if (res != JNI_OK || vm == nullptr) return false;
     JNIEnv *env = nullptr;
     res = vm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
-    if (res != JNI_OK || env == nullptr) return;
+    if (res != JNI_OK || env == nullptr) return false;
 
     auto classMember = lsplant::JNI_FindClass(env, "java/lang/reflect/Member");
     if (classMember != nullptr)
@@ -388,12 +391,13 @@ void HookContext::hook_zygote_jni() {
         if (fieldId != nullptr)
             MODIFIER_NATIVE = lsplant::JNI_GetStaticIntField(env, classModifier, fieldId);
     }
-    if (member_getModifiers == nullptr || MODIFIER_NATIVE == 0) return;
+    if (member_getModifiers == nullptr || MODIFIER_NATIVE == 0) return false;
     if (!lsplant::art::ArtMethod::Init(env)) {
         LOGE("failed to init ArtMethod");
-        return;
+        return false;
     }
-    hook_jni_methods(env, kZygote, zygote_methods);
+
+    return hook_jni_methods(env, kZygote, zygote_methods);;
 }
 
 void HookContext::restore_zygote_hook(JNIEnv *env) {
@@ -406,9 +410,9 @@ void hook_entry(void *start_addr, size_t block_size) {
 
     g_hook = new HookContext(start_addr, block_size);
     g_hook->hook_plt();
-
-    g_hook->hook_zygote_jni();
-    g_hook->cached_map_infos = lsplt::MapInfo::Scan();
+    if (g_hook->hook_zygote_jni()){
+        g_hook->is_zygote_hook = true;
+    }
 }
 
 void hookJniNativeMethods(JNIEnv *env, const char *clz, JNINativeMethod *methods, int numMethods) {

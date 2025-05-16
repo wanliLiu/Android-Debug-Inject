@@ -322,6 +322,7 @@ struct HookContext {
     void *start_addr = nullptr;
     size_t block_size = 0;
     bool should_unmap = false;
+    bool is_zygote_hook = false;
     void * self_handle = nullptr;
     bool zygote_unmounted = false;
     jint MODIFIER_NATIVE = 0;
@@ -334,9 +335,9 @@ struct HookContext {
     void hook_plt();
     void hook_unloader();
     void restore_plt_hook();
-    void hook_zygote_jni();
+    bool hook_zygote_jni();
     void restore_zygote_hook(JNIEnv *env);
-    void hook_jni_methods(JNIEnv *env, const char *clz, JNIMethods methods);
+    bool hook_jni_methods(JNIEnv *env, const char *clz, JNIMethods methods);
 
     private:
     void register_hook(dev_t dev, ino_t inode, const char *symbol, void *new_func, void **old_func);
