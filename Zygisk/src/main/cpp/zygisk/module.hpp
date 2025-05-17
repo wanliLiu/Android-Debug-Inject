@@ -322,7 +322,7 @@ struct HookContext {
     void *start_addr = nullptr;
     size_t block_size = 0;
     bool should_unmap = false;
-    bool is_zygote_hook = false;
+    bool is_zygisk_start = false;
     void * self_handle = nullptr;
     bool zygote_unmounted = false;
     jint MODIFIER_NATIVE = 0;

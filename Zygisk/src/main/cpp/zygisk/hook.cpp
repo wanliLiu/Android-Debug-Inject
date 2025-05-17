@@ -93,10 +93,8 @@ HookContext *g_hook;
 
 DCL_HOOK_FUNC(static char *, strdup, const char *str) {
     if (strcmp(kZygoteInit, str) == 0) {
-        if(!g_hook->is_zygote_hook){
             g_hook->hook_zygote_jni();
             g_hook->cached_map_infos = lsplt::MapInfo::Scan();
-        }
     }
     return old_strdup(str);
 }
@@ -265,7 +263,9 @@ void HookContext::hook_plt() {
 
     PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, fork);
     PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, unshare);
-    PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, strdup);
+    if(!g_hook->is_zygisk_start){
+        PLT_HOOK_REGISTER(android_runtime_dev, android_runtime_inode, strdup);
+    }
 
     if (!lsplt::CommitHook(cached_map_infos)) LOGE("plt_hook failed\n");
 
@@ -409,10 +409,11 @@ void HookContext::restore_zygote_hook(JNIEnv *env) {
 void hook_entry(void *start_addr, size_t block_size) {
 
     g_hook = new HookContext(start_addr, block_size);
-    g_hook->hook_plt();
     if (g_hook->hook_zygote_jni()){
-        g_hook->is_zygote_hook = true;
+        g_hook->is_zygisk_start = true;
     }
+    g_hook->hook_plt();
+
 }
 
 void hookJniNativeMethods(JNIEnv *env, const char *clz, JNINativeMethod *methods, int numMethods) {

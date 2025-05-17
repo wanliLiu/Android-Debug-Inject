@@ -63,7 +63,7 @@
 
 /**
  * @brief 使用ptrace Attach附加到指定进程,发送SIGSTOP信号给指定进程让其停止下来并对其进行跟踪。
- * 但是被跟踪进程(tracee)不一定会停下来，因为同时attach和传递SIGSTOP可能会将SIGSTOP丢失。
+ * 但是被跟踪进程(monitor)不一定会停下来，因为同时attach和传递SIGSTOP可能会将SIGSTOP丢失。
  * 所以需要waitpid(2)等待被跟踪进程被停下
  *
  * @param pid pid表示远程进程的ID

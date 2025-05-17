@@ -16,7 +16,7 @@
 #include <fcntl.h>
 #include <sys/sysmacros.h>
 #include <cinttypes>
-#include "InjectProc.h"
+#include "contorlProcess.h"
 #include <string>
 #include <vector>
 #include <array>
@@ -345,9 +345,8 @@ void InjectProc::monitor_process(pid_t pid){
                 uintptr_t  remote_waitSoPath_addr = wait_lib_load_get_base(pid, cp.waitSoPath.c_str(),local_map);
                 if(remote_waitSoPath_addr != -1){
                     if(!cp.waitFunSym.empty()){
-
                         uintptr_t remote_waitFunSym_addr = get_libFile_Symbol_off((char*)cp.waitSoPath.c_str(),(char*)cp.waitFunSym.c_str())+remote_waitSoPath_addr;
-                        LOGD("waitFunSym is not nul, wait Fun exec,waitFunSymAddr : %lx",remote_waitFunSym_addr);
+                        LOGD("waitFunSym is %s, wait Fun exec,waitFunSymAddr : %lx",cp.waitFunSym.c_str(),remote_waitFunSym_addr);
                         wait_FunSym(pid, (uintptr_t) remote_waitFunSym_addr);
                     }
                     LOGD("start, inject so to process");

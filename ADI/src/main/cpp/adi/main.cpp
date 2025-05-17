@@ -14,10 +14,9 @@
 #include <elf.h>
 #include <thread>
 #include "json.hpp"
-#include "InjectProc.h"
+#include "contorlProcess.h"
 #include "logging.h"
-#include <getopt.h>  // 必须包含此头文件
-
+#include "parse_args.h"
 using namespace std;
 using json = nlohmann::json;
 
@@ -132,12 +131,21 @@ void clean_trace(int arg) {
     ptrace(PTRACE_DETACH, injectProc.getTracePid(), nullptr, nullptr);
     exit(0);
 }
-int inject_main(){
+int inject_main(pid_t inject_pid,char*InjectSO,char* InjectFunSym,char*InjectFunArg){
 
 }
 
-int tracee_main_cmd(pid_t tracee_pid){
-    pid_t traced_pid = tracee_pid;
+int tracee_main_cmd(pid_t tracee_pid,ContorlProcess &cp){
+    InjectProc & injectProc = InjectProc::getInstance();
+    injectProc.setTracePid(tracee_pid);
+    if(tracee_pid <0){
+        LOGD("traced_pid is error");
+        return 0;
+    }
+
+    injectProc.add_childProces(cp);
+    std::thread ptraceThread(PtraceTask);
+    ptraceThread.join();
 }
 int tracee_main_config(char * file){
     std::ifstream f(file);
@@ -171,75 +179,6 @@ int tracee_main_config(char * file){
     ptraceThread.join();
 }
 
-typedef struct {
-    bool help;          // --help 或 -h
-    bool verbose;       // --verbose 或 -v
-    bool tracee;
-    bool inject;
-    bool pid;
-    bool soPath;
-    char *config;       // --output=<file> 或 -o <file>
-    int count;          // --count=<num> 或 -c <num>
-    char **files;       // 剩余的非选项参数
-    int file_count;     // 非选项参数的数量
-} ProgramArgs;
-
-
-void parse_args(int argc, char **argv, ProgramArgs *args) {
-    // 初始化默认值
-    args->help = false;
-    args->verbose = false;
-    args->config = NULL;
-    args->count = 0;
-    args->files = NULL;
-    args->file_count = 0;
-
-    // 定义长选项（long options）
-    static struct option long_options[] = {
-            {"help",    no_argument,       0, 'h'},  // --help
-            {"tracee",    no_argument,       0, 't'},  // --tracee
-            {"inject",    no_argument,       0, 'i'},  // --inject
-            {"config",    required_argument,       0, 'c'},  // --inject
-            {"verbose", no_argument,       0, 'v'},  // --verbose
-            {"pid",  required_argument, 0, 'p'},  // --pid
-            {"output",  required_argument, 0, 'o'},  // --output=<file>
-            {"count",   required_argument, 0, 'c'},  // --count=<num>
-            {0, 0, 0, 0}  // 结束标记
-    };
-
-    // 定义短选项（short options）
-    const char *short_options = "hvo:c:";
-
-    int opt;
-    int option_index = 0;
-
-    // 解析选项
-    while ((opt = getopt_long(argc, argv, short_options, long_options, &option_index)) != -1) {
-        switch (opt) {
-            case 'h':
-                args->help = true;
-                break;
-            case 'v':
-                args->verbose = true;
-                break;
-            case 't':
-                args->tracee = true;
-                break;
-            case 'i':
-                args->inject = true;
-                break;
-            case 'c':
-                args->config = strdup(optarg);  // 复制参数
-                break;
-            case '?':
-                fprintf(stderr, "Unknown option: %s\n", argv[optind - 1]);
-                exit(EXIT_FAILURE);
-            case ':':
-                fprintf(stderr, "Option requires an argument: %s\n", argv[optind - 1]);
-                exit(EXIT_FAILURE);
-        }
-    }
-}
 
 int main(int argc, char *argv[]) {
     LOGD("buile time: %s",__TIMESTAMP__);
@@ -248,16 +187,28 @@ int main(int argc, char *argv[]) {
     ProgramArgs args;
     parse_args(argc, argv, &args);
 
-    if(args.tracee){
+    if(args.monitor){
         if(args.config != NULL){
+            LOGD("args.config: %s",args.config);
             tracee_main_config(args.config);
         } else{
-            tracee_main_cmd();
+            LOGD("ContorlProcess: %s %s %s %s %s %s %d",args.exec,args.waitSoPath,args.waitFunSym, args.injectSoPath, args.injectFunSym,args.injectFunArg,args.monitorCount);
+            auto cp = ContorlProcess {args.exec, args.waitSoPath, args.waitFunSym, args.injectSoPath, args.injectFunSym,args.injectFunArg,args.monitorCount};
+            tracee_main_cmd(args.pid,cp);
         }
-
     }
-
-
+    if(args.inject){
+        LOGD("start inject process");
+        int status = 0;
+        if (ptrace(PTRACE_ATTACH, args.pid, NULL, NULL) < 0){
+            LOGE("[-] ptrace attach process error, pid:%d, err:%s\n", args.pid, strerror(errno));
+            return -1;
+        }
+        LOGD("[+] attach porcess success, pid:%d\n", args.pid);
+        waitpid(args.pid, &status, WUNTRACED);
+        inject_process(args.pid,args.injectSoPath, args.injectFunSym,args.injectFunArg);
+        ptrace(PTRACE_CONT, args.pid, 0, 0);
+    }
 
     return 0;
 }
