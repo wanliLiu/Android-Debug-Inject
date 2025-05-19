@@ -19,8 +19,8 @@ var git = Grgit.open{  dir = rootProject.rootDir  } // 明确指定目录
 
 
 val moduleId by extra("zygiskADI")
-val moduleName by extra("Android Linux Debug Inject Zygisk")
-val verName by extra("v0-0.1")
+val moduleName by extra("zygiskADI")
+val verName by extra("v0-0.2")
 val verCode by extra(git.log().size)
 val commitHash by extra(git.head().abbreviatedId)
 
