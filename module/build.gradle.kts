@@ -74,5 +74,46 @@ androidComponents.onVariants { variant ->
         from(moduleDir)
     }
 
+    val pushTask = task<Exec>("push$variantCapped") {
+        group = "module"
+        dependsOn(zipTask)
+        commandLine("adb", "push", zipTask.outputs.files.singleFile.path, "/data/local/tmp")
+    }
+
+
+    val installKsuTask = task<Exec>("installKsu$variantCapped") {
+        group = "module"
+        dependsOn(pushTask)
+        commandLine(
+            "adb", "shell", "su", "-c",
+            "/data/adb/ksud module install /data/local/tmp/$zipFileName"
+        )
+    }
+
+    val installMagiskTask = task<Exec>("installMagisk$variantCapped") {
+        group = "module"
+        dependsOn(pushTask)
+        commandLine(
+            "adb",
+            "shell",
+            "su",
+            "-M",
+            "-c",
+            "magisk --install-module /data/local/tmp/$zipFileName"
+        )
+    }
+
+    task<Exec>("installKsuAndReboot$variantCapped") {
+        group = "module"
+        dependsOn(installKsuTask)
+        commandLine("adb", "reboot")
+    }
+
+    task<Exec>("installMagiskAndReboot$variantCapped") {
+        group = "module"
+        dependsOn(installMagiskTask)
+        commandLine("adb", "reboot")
+    }
+
 
 }
