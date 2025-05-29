@@ -367,6 +367,7 @@ void InjectProc::monitor_process(pid_t pid){
 
         }
 
+        ptrace(PTRACE_SYSCALL, pid, 0, 0);
         ptrace(PTRACE_CONT, pid, 0, 0);
 
     }
