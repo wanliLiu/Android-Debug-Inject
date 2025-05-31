@@ -80,7 +80,7 @@ namespace zygiskComm {
         std::vector<Module> modules;
         UniqueFd fd = Connect(1);
         if (fd == -1) {
-            PLOGE("ReadModules");
+            PLOGE("ReadModules failed");
             return modules;
         }
         socket_utils::write_u8(fd, (uint8_t) SocketAction::ReadModules);
