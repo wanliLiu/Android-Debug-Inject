@@ -5,7 +5,7 @@
 #ifndef ZYGISKNEXT_ROOTIMP_H
 #define ZYGISKNEXT_ROOTIMP_H
 #include "sys/types.h"
-
+#include "daemon.h"
 
 
 
@@ -25,8 +25,26 @@ enum : uint32_t {
     UNMOUNT_MASK = PROCESS_ON_DENYLIST
 };
 
-
-
+struct mountinfo {
+    unsigned int id;
+    unsigned int parent;
+    dev_t device;
+    const char *root;
+    const char *target;
+    const char *vfs_option;
+    struct {
+        unsigned int shared;
+        unsigned int master;
+        unsigned int propagate_from;
+    } optional;
+    const char *type;
+    const char *source;
+    const char *fs_option;
+};
+struct mountinfos {
+    struct mountinfo *mounts;
+    size_t length;
+};
 
 class RootImp {
 
@@ -39,14 +57,16 @@ public:
 
     RootImp(const RootImp&)= delete;
 
-    RootImp(){
+    RootImp(){};
+    void init(){
         manager_uid = get_mamager_uid();
-    };
-
+    }
     RootImp& operator=(const RootImp)=delete;
     bool uid_is_manager(uid_t uid) const;
+    bool cache_mount_namespace(pid_t pid);
 
     virtual bool uid_should_umount(uid_t uid)  = 0;
+    int update_mount_namespace(zygiskComm::MountNamespace type) ;
     virtual bool uid_granted_root(uid_t uid) = 0 ;
     virtual int getRootFlags (uid_t uid) = 0;
 
@@ -55,6 +75,9 @@ public:
 private:
     uid_t manager_uid = -1;
     int root_imp;
+    int module_mnt_ns_fd = -1;
+    int root_mnt_ns_fd = -1;
+    int clean_mnt_ns_fd = -1;
 
 };
 

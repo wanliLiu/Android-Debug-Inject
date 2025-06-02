@@ -74,5 +74,6 @@ int magisk::getRootFlags(uid_t uid) {
 }
 
 bool magisk::uid_should_umount(uid_t uid) {
+
     return false;
 }

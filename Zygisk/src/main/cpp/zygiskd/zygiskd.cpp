@@ -66,28 +66,26 @@ void Zygiskd::collect_modules(){
 
 void Zygiskd::rootImpInit() {
     const char *kernelsu = getenv("KSU");
-    LOGD("KSU0");
     if (kernelsu != nullptr) {
         LOGD("Detected KernelSU (Version: %s)\n", kernelsu);
         rootImp =  new ksu();
-//        manager_uid = get_ksu_mamager_uid();
+        rootImp->init();
 //        root_imp = PROCESS_ROOT_IS_KSU;
     }
-    LOGD("APATCH1");
     const char *apd = getenv("APATCH");
     if (apd != nullptr) {
         LOGD("Detected APATCH (Version: %s)\n", apd);
         rootImp =  new apatch();
-//        rootImp->get_apatch_mamager_uid();
-//        manager_uid = get_apatch_mamager_uid();
+        rootImp->init();
+
 //        root_imp = PROCESS_ROOT_IS_APATCH;
 
     }
-    LOGD("MAGISK_VER2");
     if (RootImp::is_magisk_root()) {
         LOGD("Detected MAGISK\n");
         rootImp =  new magisk();
-//        manager_uid =  get_magisk_mamager_uid();
+        rootImp->init();
+
 //        root_imp = PROCESS_ROOT_IS_MAGISK;
 
     }
@@ -222,6 +220,18 @@ void zygiskd_handle(int client_fd){
         case (uint8_t)zygiskComm::SocketAction::PingHeartBeat:
             LOGD("HandleEvent PingHeartBeat");
             break;
+        case (uint8_t)zygiskComm::SocketAction::CacheMountNamespace: {
+            pid_t pid =socket_utils::read_u32(client_fd);
+            Zygiskd::getInstance().getRootImp()->cache_mount_namespace(pid);
+        }
+        case (uint8_t)zygiskComm::SocketAction::UpdateMountNamespace:{
+            zygiskComm::MountNamespace type  = static_cast<zygiskComm::MountNamespace>(socket_utils::read_u8(client_fd));
+            int fd = Zygiskd::getInstance().getRootImp()->update_mount_namespace(type);
+            socket_utils::write_u32(client_fd,getpid());
+            socket_utils::write_u32(client_fd,fd);
+            break;
+        }
+
         case (uint8_t)zygiskComm::SocketAction::ZygoteRestart:
             LOGD("HandleEvent ZygoteRestart");
             break;

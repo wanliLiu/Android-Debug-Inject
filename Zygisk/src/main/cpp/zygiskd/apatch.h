@@ -15,6 +15,7 @@ class apatch : public RootImp {
     int getRootFlags(uid_t uid);
     bool uid_should_umount(uid_t uid);
 
+
 };
 
 
