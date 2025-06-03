@@ -125,7 +125,6 @@ namespace zygiskComm {
 
     }
 
-
     void CacheMountNamespace(pid_t pid) {
         UniqueFd fd = Connect(1);
         if (fd == -1) {

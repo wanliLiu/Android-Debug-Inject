@@ -321,27 +321,23 @@ void ZygiskContext::run_modules_post() {
         if (m.tryUnload()) modules_unloaded++;
     }
 
-    if (modules.size() > 0) {
-        LOGD("modules unloaded: %zu/%zu", modules_unloaded, modules.size());
-//        clean_trace("jit-cache-zygisk", modules.size(), modules_unloaded, true);
-    }
+//    if (modules.size() > 0) {
+//        LOGD("modules unloaded: %zu/%zu", modules_unloaded, modules.size());
+////        clean_trace("jit-cache-zygisk", modules.size(), modules_unloaded, true);
+//    }
 }
 
 void ZygiskContext::app_specialize_pre() {
-    if (!(flags & APP_FORK_AND_SPECIALIZE)) {
-        // Avoid fetching process flags twice
-        info_flags = zygiskComm::GetProcessFlags(args.app->uid);
-    }
-
+    flags |= APP_SPECIALIZE;
+    info_flags = zygiskComm::GetProcessFlags(args.app->uid);
 
     if ((info_flags & UNMOUNT_MASK) == UNMOUNT_MASK) {
         LOGI("[%s] is on the denylist\n", process);
         flags |= DO_REVERT_UNMOUNT;
-//        update_mount_namespace(zygiskComm::MountNamespace::Clean);
+    }else{
+        run_modules_pre();
     }
 
-    flags |= APP_SPECIALIZE;
-    run_modules_pre();
 }
 
 void ZygiskContext::app_specialize_post() {
@@ -382,6 +378,7 @@ void ZygiskContext::nativeSpecializeAppProcess_post() {
 void ZygiskContext::nativeForkSystemServer_pre() {
     LOGV("pre forkSystemServer\n");
     flags |= SERVER_FORK_AND_SPECIALIZE;
+    process = "system_server";
 
     fork_pre();
     if (is_child()) {
@@ -403,19 +400,18 @@ void ZygiskContext::nativeForkAndSpecialize_pre() {
     LOGV("pre forkAndSpecialize [%s]\n", process);
     flags |= APP_FORK_AND_SPECIALIZE;
 
-    info_flags = zygiskComm::GetProcessFlags(args.app->uid);
 
-    if (!g_hook->zygote_unmounted) {
-        // Cache mount profiles if not done
-//        if (info_flags & IS_FIRST_PROCESS) {
-//            zygiskComm::CacheMountNamespace(getpid());
-//        }
-//
-//        // Unmount the root implementation for Zygote
-//        update_mount_namespace(zygiskComm::MountNamespace::Clean);
-        g_hook->zygote_unmounted = true;
-        LOGV("zygote process mounting points cleared");
-    }
+//    if (!g_hook->zygote_unmounted) {
+//        // Cache mount profiles if not done
+////        if (info_flags & IS_FIRST_PROCESS) {
+////            zygiskComm::CacheMountNamespace(getpid());
+////        }
+////
+////        // Unmount the root implementation for Zygote
+////        update_mount_namespace(zygiskComm::MountNamespace::Clean);
+//        g_hook->zygote_unmounted = true;
+//        LOGV("zygote process mounting points cleared");
+//    }
 
     fork_pre();
     if (is_child()) {
