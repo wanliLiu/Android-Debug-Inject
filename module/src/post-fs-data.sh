@@ -44,8 +44,8 @@ if [ -f $MODDIR/lib/arm64-v8a/libzygisk.so ];then
 fi
 
 
-export LIB_ZYGISK_SO_PATH=$TMP_PATH/lib64/libsyzuel.so
-#export LIB_ZYGISK_SO_PATH=/data/adb/modules/zygiskADI/lib/arm64-v8a/libzygisk.so
+#export LIB_ZYGISK_SO_PATH=$TMP_PATH/lib64/libsyzuel.so
+export LIB_ZYGISK_SO_PATH=/data/adb/modules/zygiskADI/lib/arm64-v8a/libzygisk.so
 
 #  must usr &
 ./bin/zygiskd unix_socket d63138f231 &

@@ -99,6 +99,17 @@ DCL_HOOK_FUNC(static char *, strdup, const char *str) {
     return old_strdup(str);
 }
 
+
+void revert_unmount(){
+    const char* mountpoint = "/data/adb/modules";
+    if (umount2(mountpoint, MNT_DETACH) != -1) {
+        LOGD("Unmounted (%s)", mountpoint);
+    } else {
+        LOGD("Unmount (%s) Failed", mountpoint);
+    }
+}
+
+
 // Skip actual fork and return cached result if applicable
 DCL_HOOK_FUNC(int, fork) { return (g_ctx && g_ctx->pid >= 0) ? g_ctx->pid : old_fork(); }
 
@@ -108,7 +119,7 @@ DCL_HOOK_FUNC(static int, unshare, int flags) {
     int res = old_unshare(flags);
     if (g_ctx && (flags & CLONE_NEWNS) != 0 && res == 0) {
         if (g_ctx->flags & DO_REVERT_UNMOUNT) {
-//            revert_unmount();
+            revert_unmount();
         }
         // Restore errno back to 0
         errno = 0;
