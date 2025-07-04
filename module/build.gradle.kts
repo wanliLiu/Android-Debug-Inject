@@ -27,10 +27,11 @@ androidComponents.onVariants { variant ->
     val variantLowered = variant.name.lowercase()
     val variantCapped = variant.name.capitalizeUS()
     val buildTypeLowered = variant.buildType?.lowercase()
+    println("$buildTypeLowered")
     val moduleDir = layout.buildDirectory.dir("outputs/module/$variantLowered")
     val zipFileName = "$moduleId-$verName-$verCode-$commitHash-$buildTypeLowered.zip".replace(' ', '-')
     val prepareModuleFilesTask = task<Sync>("prepareModuleFiles$variantCapped") {
-
+        println("$buildTypeLowered")
         dependsOn(
             ":ADI:externalNativeBuild$variantCapped",
             ":Zygisk:externalNativeBuild$variantCapped",
@@ -114,4 +115,13 @@ androidComponents.onVariants { variant ->
     }
 
 
+}
+
+task("logSomething2") {
+    println("这是从 Gradle Task 打印的日志信息")
+}
+tasks.register("logSomething") {
+    doLast {
+        println("这是从 Gradle Task 打印的日志信息")
+    }
 }

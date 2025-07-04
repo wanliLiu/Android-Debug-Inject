@@ -76,3 +76,38 @@ int ssprintf(char *dest, size_t size, const char *fmt, ...) {
     va_end(va);
     return r;
 }
+
+
+int read_int(int fd) {
+    int val;
+    if (read(fd, &val, sizeof(val)) != sizeof(val))
+        return -1;
+    return val;
+}
+
+bool read_string(int fd, std::string &str) {
+    int len = read_int(fd);
+    str.clear();
+    if (len < 0)
+        return false;
+    str.resize(len);
+    return read(fd, str.data(), len) == len;
+}
+std::string read_string(int fd) {
+    std::string str;
+    read_string(fd, str);
+    return str;
+}
+
+
+void write_int(int fd, int val) {
+    if (fd < 0) return;
+    write(fd, &val, sizeof(val));
+}
+
+
+void write_string(int fd, std::string_view str) {
+    if (fd < 0) return;
+    write_int(fd, str.size());
+    write(fd, str.data(), str.size());
+}

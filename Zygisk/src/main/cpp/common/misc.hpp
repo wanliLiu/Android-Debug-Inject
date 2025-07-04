@@ -8,6 +8,11 @@
 
 #include "logging.h"
 
+#define ALLOW_MOVE_ONLY(clazz) \
+clazz(const clazz&) = delete;  \
+clazz(clazz &&o) { swap(o); }  \
+clazz& operator=(clazz &&o) { swap(o); return *this; }
+
 #define DISALLOW_COPY_AND_MOVE(clazz) \
 clazz(const clazz &) = delete; \
 clazz(clazz &&) = delete;
@@ -91,10 +96,30 @@ std::list<std::string> split_str(std::string_view s, std::string_view delimiter)
 
 std::string join_str(const std::list<std::string>& list, std::string_view delimiter);
 
-int ssprintf(char *dest, size_t size, const char *fmt, ...) ;
+int ssprintf(char *dest, size_t size, const char *fmt, ...);
+std::string read_string(int fd);
+void write_int(int fd, int val);
+void write_string(int fd, std::string_view str);
 int fork_dont_care() ;
 template <typename T>
 static inline T align_to(T v, int a) {
     static_assert(std::is_integral<T>::value);
     return (v + a - 1) / a * a;
 }
+
+
+
+struct owned_fd {
+    ALLOW_MOVE_ONLY(owned_fd)
+
+    owned_fd() : fd(-1) {}
+    owned_fd(int fd) : fd(fd) {}
+    ~owned_fd() { close(fd); fd = -1; }
+
+    operator int() { return fd; }
+    int release() { int f = fd; fd = -1; return f; }
+    void swap(owned_fd &owned) { std::swap(fd, owned.fd); }
+
+private:
+    int fd;
+};
