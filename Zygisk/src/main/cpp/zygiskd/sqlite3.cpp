@@ -13,7 +13,9 @@ struct sqlite3;
 
 static sqlite3 *mDB = nullptr;
 
-#define MAGISKDB    "/data/adb/magisk.db"
+#define MAGISKDB_DEFAULT    "/data/adb/magisk.db"
+
+static std::string MAGISKDB = MAGISKDB_DEFAULT;
 
 #define DBLOGV(...)
 //#define DBLOGV(...) LOGD("magiskdb: " __VA_ARGS__)
@@ -154,7 +156,7 @@ static db_result open_and_init_db(sqlite3 *&db) {
     if (!dload_sqlite())
         return "Cannot load libsqlite.so";
 
-    int ret = sqlite3_open_v2(MAGISKDB, &db,
+    int ret = sqlite3_open_v2(MAGISKDB.c_str(), &db,
                               SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nullptr);
     if (ret)
         return sqlite3_errmsg(db);
@@ -285,7 +287,7 @@ db_result db_exec(const char *sql) {
         auto res = open_and_init_db(mDB);
         if (res.check_err()) {
             // Open fails, remove and reconstruct
-            unlink(MAGISKDB);
+            unlink(MAGISKDB.c_str());
             res = open_and_init_db(mDB);
             if (!res) return res;
         }
@@ -309,7 +311,7 @@ db_result db_exec(const char *sql, const db_row_cb &fn) {
         auto res = open_and_init_db(mDB);
         if (res.check_err()) {
             // Open fails, remove and reconstruct
-            unlink(MAGISKDB);
+            unlink(MAGISKDB.c_str());
             res = open_and_init_db(mDB);
             if (!res) return res;
         }
@@ -384,4 +386,8 @@ void exec_sql(owned_fd client) {
     });
     write_int(client, 0);
     res.check_err();
+}
+
+void set_sqlite3_db_path(char* db_path){
+    MAGISKDB = db_path;
 }

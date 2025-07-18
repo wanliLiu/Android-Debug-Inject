@@ -20,6 +20,7 @@
 #include "ksu.h"
 #include "apatch.h"
 #include "magisk.h"
+#include "parse_args.h"
 
 #define EPOLL_SIZE 10
 
@@ -354,11 +355,13 @@ int main(int argc, char *argv[]) {
 //            LOGI("Root implementation: %s\n", impl_name);
             return 0;
         }
-        else if (strcmp(argv[1], "unix_socket") == 0) {
-            zygiskd_main(argv[0],argv[2]);
-            return 0;
-        }
+//        else if (strcmp(argv[1], "unix_socket") == 0) {
+//            zygiskd_main(argv[0],argv[2]);
+//            return 0;
+//        }
         else {
+            ProgramArgs args;
+            parse_args(argc-1,argv++,&args);
             LOGI("Usage: zygiskd [companion|version|root|unix_socket]\n");
             return 0;
         }

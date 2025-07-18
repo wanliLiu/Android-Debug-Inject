@@ -142,3 +142,4 @@ void rm_db_strings(int key);
 void exec_sql(owned_fd client);
 db_result db_exec(const char *sql);
 db_result db_exec(const char *sql, const db_row_cb &fn);
+void set_sqlite3_db_path(char* db_path);

@@ -4,6 +4,7 @@
 #include <memory>
 #include <pthread.h>
 #include <string>
+#include <unistd.h>
 #include <string_view>
 
 #include "logging.h"
