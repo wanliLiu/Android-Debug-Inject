@@ -7,54 +7,40 @@
 
 
 enum {
-    OPT_TRACE_EXEC = 1000,
-    OPT_TRACE_WAITSOPATH ,
-    OPT_TRACE_WAITFUNSYM,
-    OPT_INJECT_SOPATH,
-    OPT_INJECT_FUNSYM ,
-    OPT_INJECT_FUNARG ,
-    OPT_MONITORCOUNT,
-    OPT_HIDEMAPS,
-    OPT_UNLOAD
+    OPT_SET_DB = 1000,
+    OPT_SET_SOCKET,
 };
 
 #include <sys/types.h>
 
- struct ProgramArgs{
+struct ProgramArgs {
     bool help;          // --help 或 -h
     bool verbose;       // --verbose 或 -v
-    bool monitor;
-    bool inject;
-    pid_t pid;
-    bool hidemaps;
-    bool unload;
-    char* injectSoPath;
-    char* injectFunSym;
-    char* injectFunArg;
-    char* waitSoPath;
-    char* waitFunSym;
-    char* exec;
-    char *config;
-    unsigned int monitorCount;
-     ProgramArgs(){
-         help = false;
-         verbose = false;
-         config = nullptr;
-         pid = -1;
-         monitor = false;
-         inject = false;
-         injectSoPath = "";
-         injectFunSym = "";
-         injectFunArg = "";
-         waitSoPath = "";
-         waitFunSym = "";
-         exec = "";
-         config = nullptr;
-         monitorCount = 0;
-         hidemaps = false;
-         unload = false;
-     }
-} ;
+    bool start_daemon;
+
+    bool exe_sqlite;
+    char *sql;
+    bool set_sqlite_db_path;
+    char *sqlite_db_path;
+
+    bool set_unix_socket;
+    char *unix_socket_path;
 
 
-bool parse_args(int argc, char **argv, ProgramArgs *args) ;
+    ProgramArgs() {
+        help = false;
+        verbose = false;
+        start_daemon = false;
+        exe_sqlite = false;
+
+        set_sqlite_db_path = false;
+        sqlite_db_path = "";
+        sql = "";
+        set_unix_socket = false;
+        unix_socket_path = "";
+
+    }
+};
+
+
+void parse_args(int argc, char **argv, ProgramArgs *args);

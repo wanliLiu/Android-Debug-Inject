@@ -139,7 +139,7 @@ int get_db_settings(db_settings &cfg, int key = -1);
 int set_db_settings(int key, int value);
 int get_db_strings(db_strings &str, int key = -1);
 void rm_db_strings(int key);
-void exec_sql(owned_fd client);
+void exec_sql(std::string sql);
 db_result db_exec(const char *sql);
 db_result db_exec(const char *sql, const db_row_cb &fn);
 void set_sqlite3_db_path(char* db_path);

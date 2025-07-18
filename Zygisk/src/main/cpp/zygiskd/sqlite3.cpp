@@ -369,9 +369,8 @@ void rm_db_strings(int key) {
     db_exec(query).check_err();
 }
 
-void exec_sql(owned_fd client) {
-    string sql = read_string(client);
-    auto res = db_exec(sql.data(), [fd = (int) client](db_row &row) -> bool {
+void exec_sql(string sql) {
+    auto res = db_exec(sql.data(), [](db_row &row) -> bool {
         string out;
         bool first = true;
         for (auto it : row) {
@@ -381,10 +380,9 @@ void exec_sql(owned_fd client) {
             out += '=';
             out += it.second;
         }
-        write_string(fd, out);
+        printf("%s\n",out.c_str());
         return true;
     });
-    write_int(client, 0);
     res.check_err();
 }
 

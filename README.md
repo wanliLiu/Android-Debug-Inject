@@ -34,7 +34,7 @@
 
 ## 配置文件例子说明
 通过 module/src/zygisk.json 配置文件,将监控zygote启动,并注入libzygisk.so文件  
-通过 ADILib/src/main/cpp/inject.json 配置文件,将监控drm进程启动,并注入so文件
+通过 ADILib/src/main/cpp/exe_sqlite.json 配置文件,将监控drm进程启动,并注入so文件
 
 ## 配置文件参数说明
 
