@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.22.1)
 # Since this is the top level CMakeLists.txt, the project name is also accessible
 # with ${CMAKE_PROJECT_NAME} (both CMake variables are in-sync within the top level
 # build script scope).
-project("zygisk")
+project("Zygisk")
 
 set(CMAKE_CXX_STANDARD 23)
 
@@ -20,19 +20,7 @@ set(CMAKE_CXX_STANDARD 23)
 # so that we will find TutorialConfig.h
 
 # add the executable
-add_subdirectory(lsplt)
-
-
-include_directories(common)
-aux_source_directory(common COMMON_SRC_LIST)
-add_library(common STATIC ${COMMON_SRC_LIST})
-target_include_directories(common PRIVATE include)
-
-aux_source_directory(zygiskd ZYGISKD_SRC_LIST)
-add_executable(zygiskd ${ZYGISKD_SRC_LIST})
-target_link_libraries(zygiskd log common)
-
-aux_source_directory(zygisk ZYGISK_SRC_LIST)
-add_library(zygisk SHARED ${ZYGISK_SRC_LIST})
-target_link_libraries(zygisk  log common lsplt_static)
+add_subdirectory(zygisk)
+add_subdirectory(zygiskd)
+add_subdirectory(common)
 

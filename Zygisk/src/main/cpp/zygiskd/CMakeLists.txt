@@ -9,9 +9,9 @@ cmake_minimum_required(VERSION 3.22.1)
 # Since this is the top level CMakeLists.txt, the project name is also accessible
 # with ${CMAKE_PROJECT_NAME} (both CMake variables are in-sync within the top level
 # build script scope).
-project("adilib")
+project("zygiskd")
 
-# The version number.
+set(CMAKE_CXX_STANDARD 23)
 
 # configure a header file to pass some of the CMake settings
 # to the source code
@@ -20,9 +20,11 @@ project("adilib")
 # so that we will find TutorialConfig.h
 
 # add the executable
-add_subdirectory(lsplt)
 
-add_library(DrmHook SHARED DrmHook.cpp)
-target_link_libraries(DrmHook  log  lsplt_static)
+#include_directories(../common)
 
+
+aux_source_directory(. ZYGISKD_SRC_LIST)
+add_executable(zygiskd ${ZYGISKD_SRC_LIST})
+target_link_libraries(zygiskd log common)
 
