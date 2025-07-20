@@ -8,5 +8,5 @@
 #include "string"
 
 void list_modules(std::string );
-void add_enable_module( char* module_path,char* packageName);
+void add_enable_module( std::string root_path,char* module_name ,char* packageName);
 #endif //ANDROID_DEBUG_INJECT_MODULE_H

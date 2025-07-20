@@ -157,17 +157,14 @@ void list_modules(std::string MODULEROOT){
     }
     std::cout << all_modules.dump(4) << std::endl;
 }
-void add_enable_module( char* module_path,char* packageName){
-    auto dfd = open(module_path,O_RDWR|O_CLOEXEC);
-    int enable_app_fd = openat(dfd, "enable_app", O_RDONLY | O_CLOEXEC);
-    std::string new_line = packageName;
-    new_line = new_line+"\n";
+void add_enable_module( std::string module_path,char * module_name,char* packageName){
 
-    ssize_t bytes_written = write(enable_app_fd,new_line.c_str(), new_line.length());
-    if (bytes_written < 0) {
-        printf("add_enable_module failed");
-        close(enable_app_fd); // 即使出错也要关闭
+    std::string path = module_path+"/"+module_name+"/enbale_app";
+    std::fstream file;
+    file.open(path, std::ios_base::in | std::ios_base::out | std::ios_base::app);
+    if (!file.is_open()) {
+        std::cerr << "module :" << module_name<<" add: "<< packageName <<"failed"<< std::endl;
     }
-    close(enable_app_fd);
-    close(dfd);
+    file << packageName << std::endl;
+    file.close();
 }

@@ -433,9 +433,7 @@ int main(int argc, char *argv[]) {
         list_modules(MODULEROOT);
         return 0;
     }else if ((strcmp(argv[1], "--add-module-enable") == 0)) {
-
-
-//        add_enable_module(MODULEROOT);
+        add_enable_module(MODULEROOT,argv[2],argv[3]);
         return 0;
     }
     else {
