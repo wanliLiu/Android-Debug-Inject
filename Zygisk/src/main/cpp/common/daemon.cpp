@@ -65,7 +65,7 @@ namespace zygiskComm {
         return fd;
     }
 
-    uint32_t GetProcessFlags(uid_t uid) {
+    uint32_t GetProcessFlags(uid_t uid,std::string nice_name) {
         UniqueFd fd = Connect(1);
         if (fd == -1) {
             PLOGE("GetProcessFlags");
@@ -73,10 +73,11 @@ namespace zygiskComm {
         }
         socket_utils::write_u8(fd, (uint8_t) SocketAction::GetProcessFlags);
         socket_utils::write_u32(fd, uid);
+        socket_utils::write_string(fd, nice_name);
         return socket_utils::read_u32(fd);
     }
 //这个函数会编译进注入库，同时被32为和64位使用，请求不同架构的文件描述符
-    std::vector<Module> ReadModules() {
+    std::vector<Module> ReadModules(std::string process) {
         std::vector<Module> modules;
         UniqueFd fd = Connect(1);
         if (fd == -1) {
@@ -84,6 +85,7 @@ namespace zygiskComm {
             return modules;
         }
         socket_utils::write_u8(fd, (uint8_t) SocketAction::ReadModules);
+        socket_utils::write_string(fd, process);
         uint8_t arch=0;
 #if defined(__LP64__)
         arch=1;
@@ -105,25 +107,7 @@ namespace zygiskComm {
         }
         return modules;
     }
-//这个函数只会在zygiskd 进程运行，并且只会运行64位，所有需要对两个架构做处理
-    void WriteModules(int fd,std::vector<Module> modules){
 
-        uint8_t arch = socket_utils::read_u8(fd);
-
-        size_t len = modules.size();
-        socket_utils::write_usize(fd,len);
-
-        for (size_t i = 0; i < len; i++) {
-            socket_utils::write_string(fd,modules[i].name);
-            if(arch == 1){
-                socket_utils::send_fd(fd,modules[i].z64);
-            } else{
-                socket_utils::send_fd(fd,modules[i].z32);
-
-            }
-        }
-
-    }
 
     void CacheMountNamespace(pid_t pid) {
         UniqueFd fd = Connect(1);

@@ -22,12 +22,14 @@
 #include "magisk.h"
 #include "parse_args.h"
 #include "sqlite3.h"
-
+#include "module.h"
 #define EPOLL_SIZE 10
 
 # define LOG_TAG "zygiskd"
 
 std::string exe_path ;
+
+
 
 void Zygiskd::foreach_module(int fd, dirent *entry, int modfd) {
     if (faccessat(modfd, "disable", F_OK, 0) == 0) {
@@ -91,6 +93,52 @@ void Zygiskd::rootImpInit() {
 //        root_imp = PROCESS_ROOT_IS_MAGISK;
 
     }
+}
+
+int Zygiskd::getProcessFlags(uid_t uid,std::string nice_name) {
+    exec_sql("");
+    return 0;
+}
+std::vector<Module> Zygiskd::getEnableModules(std::string processName){
+
+    std::vector<Module> enbale_vec;
+    size_t len = module_list.size();
+    char file_path[4096];
+    for (size_t i = 0; i < len; i++) {
+        Module m = module_list[i];
+        ssprintf(file_path, sizeof(file_path), MODULEROOT "/%s/disable", m.name.c_str());
+        if(access(file_path, F_OK) == 0){
+            continue;
+        }
+        ssprintf(file_path, sizeof(file_path), MODULEROOT "/%s/enable_app", m.name.c_str());
+        FILE *file = fopen(file_path, "r");
+        if (file == NULL) {
+            continue;
+        }
+
+        char *line = NULL; // **重要**：初始化为 NULL，让 getline 自动分配内存
+        size_t len = 0;    // **重要**：初始化为 0
+        ssize_t read;      // 用于接收 getline 的返回值
+        int line_number = 0;
+        while ((read = getline(&line, &len, file)) != -1) {
+            line_number++;
+
+            // 可选：移除行末的换行符
+            if (read > 0 && line[read - 1] == '\n') {
+                line[read - 1] = '\0';
+            }
+
+            if (strstr(line, processName.c_str()) != NULL) {
+                enbale_vec.push_back(m);
+            }
+        }
+        if(line){
+            free(line);
+        }
+        fclose(file);
+    }
+    return enbale_vec;
+
 }
 
 
@@ -194,14 +242,30 @@ void handle_daemon_action(int cmd, int fd) {
         case (uint8_t) zygiskComm::SocketAction::GetProcessFlags: {
             LOGD("GetProcessFlags");
             uid_t uid = socket_utils::read_u32(fd);
-            int flags = Zygiskd::getRootImp()->getProcessFlags(uid);
+            std::string nice_name = socket_utils::read_string(fd);
+            int flags = Zygiskd::getInstance().getProcessFlags(uid,nice_name);
             socket_utils::write_u32(fd, flags);
             break;
         }
-        case (uint8_t) zygiskComm::SocketAction::ReadModules:
+        case (uint8_t) zygiskComm::SocketAction::ReadModules:{
             LOGD("ReadModules");
-            zygiskComm::WriteModules(fd, Zygiskd::getInstance().getModule_list());
+            std::string nice_name = socket_utils::read_string(fd);
+            std::vector<Module> modules =  Zygiskd::getInstance().getEnableModules(nice_name);
+            uint8_t arch = socket_utils::read_u8(fd);
+            size_t len = modules.size();
+            socket_utils::write_usize(fd,len);
+
+            for (size_t i = 0; i < len; i++) {
+                socket_utils::write_string(fd,modules[i].name);
+                if(arch == 1){
+                    socket_utils::send_fd(fd,modules[i].z64);
+                } else{
+                    socket_utils::send_fd(fd,modules[i].z32);
+                }
+            }
             break;
+        }
+
         case (uint8_t) zygiskComm::SocketAction::RequestCompanionSocket: {
             LOGD("RequestCompanionSocket");
             uint32_t arch = socket_utils::read_u32(fd);
@@ -357,7 +421,24 @@ int main(int argc, char *argv[]) {
         int fd = atoi(argv[2]);
         companion_entry(fd);
         return 0;
-    } else {
+    }else if ((strcmp(argv[1], "--sqlite") == 0) && (argc == 3)) {
+        LOGI("exec sql:%s",argv[2]);
+        exec_sql(argv[2]);
+        return 0;
+    }else if ((strcmp(argv[1], "--install-module") == 0) && (argc == 3)) {
+        LOGI("exec sql:%s",argv[2]);
+        exec_sql(argv[2]);
+        return 0;
+    }else if ((strcmp(argv[1], "--list-module") == 0) && (argc == 2)) {
+        list_modules(MODULEROOT);
+        return 0;
+    }else if ((strcmp(argv[1], "--add-module-enable") == 0)) {
+
+
+//        add_enable_module(MODULEROOT);
+        return 0;
+    }
+    else {
         ProgramArgs args;
         parse_args(argc - 1, argv++, &args);
         if(args.set_unix_socket){

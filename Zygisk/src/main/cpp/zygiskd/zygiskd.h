@@ -31,6 +31,7 @@ public:
     std::vector<Module> getModule_list(){
         return module_list;
     }
+    std::vector<Module> getEnableModules(std::string processName);
 
     std::string getModul_by_index(int index){
         return module_list.at(index).name;
@@ -38,6 +39,7 @@ public:
 
     Zygiskd(const Zygiskd&)= delete;
     Zygiskd& operator=(const Zygiskd)=delete;
+    int getProcessFlags(uid_t uid,std::string nice_name);
     static RootImp* getRootImp(){
         return getInstance().rootImp;
     }

@@ -7,7 +7,6 @@
 #include <sys/un.h>
 
 
-
 class UniqueFd {
     using Fd = int;
 public:
@@ -67,14 +66,13 @@ namespace zygiskComm {
     void InitRequestorSocket(const char *path);
 
     std::string GetTmpPath();
-    void WriteModules(int fd,std::vector<Module> modules);
     bool PingHeartbeat();
 
     int RequestLogcatFd();
 
-    std::vector<Module> ReadModules();
+    std::vector<Module> ReadModules(std::string );
 
-    uint32_t GetProcessFlags(uid_t uid);
+    uint32_t GetProcessFlags(uid_t uid,std::string nice_name);
 
     std::string UpdateMountNamespace(MountNamespace type);
 

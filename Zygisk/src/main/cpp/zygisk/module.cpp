@@ -288,7 +288,7 @@ void ZygiskContext::fork_post() {
 
 /* Zygisksu changed: Load module fds */
 void ZygiskContext::run_modules_pre() {
-    auto ms = zygiskComm::ReadModules();
+    auto ms = zygiskComm::ReadModules(process);
     auto size = ms.size();
     for (size_t i = 0; i < size; i++) {
         auto &m = ms[i];
@@ -329,14 +329,14 @@ void ZygiskContext::run_modules_post() {
 
 void ZygiskContext::app_specialize_pre() {
     flags |= APP_SPECIALIZE;
-    info_flags = zygiskComm::GetProcessFlags(args.app->uid);
-
-    if ((info_flags & UNMOUNT_MASK) == UNMOUNT_MASK) {
-        LOGI("[%s] is on the denylist\n", process);
-        flags |= DO_REVERT_UNMOUNT;
-    }else{
+//    info_flags = zygiskComm::GetProcessFlags(args.app->uid,process);
+//
+//    if ((info_flags & UNMOUNT_MASK) == UNMOUNT_MASK) {
+//        LOGI("[%s] is on the denylist\n", process);
+//        flags |= DO_REVERT_UNMOUNT;
+//    }else{
         run_modules_pre();
-    }
+//    }
 
 }
 
