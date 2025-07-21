@@ -22,8 +22,8 @@ set(CMAKE_CXX_STANDARD 23)
 # add the executable
 
 
-aux_source_directory(. COMMON_SRC_LIST)
-add_library(common STATIC ${COMMON_SRC_LIST})
+
+add_library(common STATIC daemon.cpp dl.cpp elf_symbol_resolver.cpp files.cpp logging.cpp misc.cpp socket_utils.cpp)
 
 target_include_directories(common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
